@@ -62,6 +62,31 @@ textarea{width:100%;min-height:70px;resize:vertical;background:var(--bg);color:v
 button{margin-top:8px;background:var(--acc);color:#fff;border:0;border-radius:8px;padding:8px 16px;font-weight:600;cursor:pointer}
 .err{color:#dc2626;margin-top:8px;white-space:pre-wrap}
 .note{color:var(--mute);font-size:12px;margin-top:6px}
+
+.hint{font:12px ui-monospace,Menlo,Consolas,monospace;color:var(--mute)}
+.search{width:100%;max-width:520px;padding:12px 16px;border:1px solid var(--line);border-radius:999px;background:var(--card);color:var(--ink);font-size:15px;margin:6px 0 22px;box-shadow:var(--shadow)}
+.search:focus{outline:2px solid var(--acc)}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:14px;margin-bottom:22px}
+.item{display:block;padding:12px 16px;border-bottom:1px solid var(--line);color:var(--ink);text-decoration:none}
+.item:last-child{border-bottom:0}.item:hover{background:var(--acc-soft)}
+.item b{display:block;font-weight:600}.item span{color:var(--mute);font-size:13px}
+.more{display:block;padding:10px 16px;color:var(--acc);text-decoration:none;font-size:13px}
+.hero{padding:20px 22px}
+.hero h1{margin:6px 0 2px;font-size:26px}
+.tag{display:inline-block;font:11px ui-monospace,Menlo,Consolas,monospace;padding:2px 8px;border-radius:6px;background:var(--acc-soft);color:var(--acc)}
+dl{display:grid;grid-template-columns:max-content 1fr;gap:6px 24px;margin:16px 0 0}
+dt{color:var(--mute);font-size:13px}dd{margin:0}
+dd a{color:var(--fk);font-weight:600;text-decoration:none}
+.lvl{font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--mute);margin:26px 0 10px;display:flex;gap:10px;align-items:center}
+.lvl:after{content:"";flex:1;height:1px;background:var(--line)}
+.up{display:flex;flex-wrap:wrap;gap:14px;margin-bottom:6px}
+.up a{flex:1 1 260px;display:block;padding:14px 18px;border:1px solid var(--line);border-radius:12px;background:var(--card);text-decoration:none;color:var(--ink);box-shadow:var(--shadow)}
+.up a:hover{border-color:var(--acc)}
+.up small{display:block;margin-bottom:4px}
+.kid h2 span{float:right;font-weight:400;text-transform:none;letter-spacing:0}
+tr.go{cursor:pointer}
+.trail{font-size:13px;color:var(--mute);margin-bottom:12px}
+.trail a{color:var(--acc);text-decoration:none}.trail i{font-style:normal;margin:0 6px}
 @media(max-width:760px){body{flex-direction:column;height:auto;overflow:auto}aside{width:100%;border-right:0;border-bottom:1px solid var(--line)}nav{display:flex;flex-wrap:wrap;gap:4px}.foot,.sec{display:none}main{padding:16px}}
 </style>
 </head>
@@ -113,22 +138,24 @@ function loadMeta() {
 }
 
 function nav(active) {
-  $('#nav').innerHTML = `<a href="#/" class="${!active ? 'on' : ''}">Översikt</a><div class="sec">Tabeller</div>` +
+  $('#nav').innerHTML = `<a href="#/" class="${active === '__home' ? 'on' : ''}">Start</a><a href="#/struktur" class="${active === '__er' ? 'on' : ''}">Struktur</a><div class="sec">Tabeller</div>` +
     Object.values(meta).map(t => `<a href="#/${t.name}" class="${active === t.name ? 'on' : ''}">${t.name}<span>${t.count}</span></a>`).join('') +
     `<div class="sec">Verktyg</div><a href="#/sql" class="${active === '__sql' ? 'on' : ''}">SQL</a>`;
 }
 
 function route() {
   const p = decodeURIComponent(location.hash.slice(2)).split('/');
-  if (!p[0]) return overview();
+  if (!p[0]) return home();
+  if (p[0] === 'struktur') return overview();
+  if (p[0] === 'r' && meta[p[1]]) return record(meta[p[1]], p[2]);
   if (p[0] === 'sql') return sqlView();
   if (meta[p[0]]) return tableView(meta[p[0]], p[1], p[2]);
-  overview();
+  home();
 }
 
 /* ---------- Översikt: ER-diagram ---------- */
 function overview() {
-  nav(null);
+  nav('__er');
   const T = Object.values(meta), W = 230, RH = 22, HH = 34, GX = 120, GY = 28;
   const level = {};
   const lv = (n, d = 0) => {
@@ -185,6 +212,82 @@ function overview() {
   });
 }
 
+
+/* ---------- Portal: Start + objektvy ---------- */
+const keyCols = t => new Set([t.pkcol, ...t.fks.map(f => f.from)]);
+function lbl(t, r) {
+  const k = keyCols(t), c = t.cols.filter(x => !k.has(x.name) && r[x.name] != null);
+  const nm = c.find(x => /name|namn|title|titel/i.test(x.name)) || c[0], sb = c.find(x => x !== nm);
+  return { title: nm ? String(r[nm.name]) : `#${r[t.pkcol]}`, sub: sb ? String(r[sb.name]) : '' };
+}
+const rlink = (t, r) => `#/r/${t.name}/${encodeURIComponent(r[t.pkcol])}`;
+const item = (t, r) => { const l = lbl(t, r); return `<a class="item" href="${rlink(t, r)}"><b>${esc(l.title)}</b><span>${esc(l.sub)}</span></a>`; };
+
+function home() {
+  nav('__home');
+  $('#main').innerHTML = `<h1>Start</h1><div class="sub">Sök eller välj var du vill börja.</div>
+  <input id="sr" class="search" placeholder="Sök i alla tabeller..." autofocus><div id="out"></div>`;
+  const out = $('#out');
+  const roots = () => {
+    out.innerHTML = '<div class="grid">' + Object.values(meta).filter(t => !t.fks.length).map(t => {
+      const rs = q(`select * from "${t.name}" limit 6`);
+      return `<div class="card" style="margin:0"><h2>${t.name} <span class="hint" style="float:right">${t.count}</span></h2>${rs.map(r => item(t, r)).join('')}${t.count > 6 ? `<a class="more" href="#/${t.name}">Visa alla ${t.count} &rarr;</a>` : ''}</div>`;
+    }).join('') + '</div>';
+  };
+  roots();
+  $('#sr').oninput = e => {
+    const v = e.target.value.trim(); if (!v) return roots();
+    const html = Object.values(meta).map(t => {
+      const rs = q(`select * from "${t.name}" where ${t.cols.map(c => `cast("${c.name}" as text) like ?`).join(' or ')} limit 8`, t.cols.map(() => `%${v}%`));
+      return rs.length ? `<div class="card"><h2>${t.name}</h2>${rs.map(r => item(t, r)).join('')}</div>` : '';
+    }).join('');
+    out.innerHTML = html || '<p class="sub">Inga träffar.</p>';
+  };
+}
+
+function record(t, pk) {
+  nav(t.name);
+  const r = q(`select * from "${t.name}" where "${t.pkcol}" = ?`, [pk])[0];
+  if (!r) { $('#main').innerHTML = `<p class="sub">Hittade ingen rad ${esc(t.name)} ${esc(pk)}. <a href="#/">Till start</a></p>`; return; }
+  // brödsmulor: följ första föräldern uppåt
+  const trail = []; let ct = t, cr = r;
+  for (let i = 0; i < 6; i++) {
+    trail.unshift({ t: ct, r: cr });
+    const f = ct.fks.find(x => cr[x.from] != null && meta[x.table]); if (!f) break;
+    const pt = meta[f.table], pr = q(`select * from "${pt.name}" where "${f.to}" = ?`, [cr[f.from]])[0]; if (!pr) break;
+    ct = pt; cr = pr;
+  }
+  const crumbs = trail.map((x, i) => i === trail.length - 1 ? `<b>${esc(lbl(x.t, x.r).title)}</b>` : `<a href="${rlink(x.t, x.r)}">${esc(lbl(x.t, x.r).title)}</a>`).join('<i>/</i>');
+  const L = lbl(t, r), fkmap = Object.fromEntries(t.fks.map(f => [f.from, f]));
+
+  const up = t.fks.filter(f => r[f.from] != null && meta[f.table]).map(f => {
+    const pt = meta[f.table], pr = q(`select * from "${pt.name}" where "${f.to}" = ?`, [r[f.from]])[0]; if (!pr) return '';
+    const l = lbl(pt, pr);
+    return `<a href="${rlink(pt, pr)}"><small class="hint">&uarr; ${pt.name} &middot; via ${f.from}</small><b>${esc(l.title)}</b><div style="color:var(--mute)">${esc(l.sub)}</div></a>`;
+  }).join('');
+
+  const fields = t.cols.filter(c => !c.pk).map(c => {
+    const v = r[c.name], f = fkmap[c.name]; let val = v === null ? '<span style="color:var(--mute)">-</span>' : esc(v);
+    if (f && v !== null && meta[f.table]) { const pr = q(`select * from "${f.table}" where "${f.to}" = ?`, [v])[0]; if (pr) val = `<a href="${rlink(meta[f.table], pr)}">${esc(lbl(meta[f.table], pr).title)}</a>`; }
+    return `<dt>${esc(c.name)}</dt><dd>${val}</dd>`;
+  }).join('');
+
+  const kids = t.children.map(k => {
+    const ct = meta[k.table], key = r[k.ref];
+    const n = q(`select count(*) n from "${k.table}" where "${k.col}" = ?`, [key])[0].n;
+    const rs = q(`select * from "${k.table}" where "${k.col}" = ? limit 25`, [key]);
+    const cols = ct.cols.filter(c => !c.pk && c.name !== k.col).slice(0, 6);
+    const body = rs.map(x => `<tr class="go" onclick="location.hash='${rlink(ct, x)}'"><td class="hint">#${esc(x[ct.pkcol])}</td>${cols.map(c => `<td>${x[c.name] === null ? '<span style="color:var(--mute)">-</span>' : esc(x[c.name])}</td>`).join('')}</tr>`).join('');
+    return `<div class="card kid"><h2>${ct.name} <span class="hint">${n} st &middot; ${k.col} = ${esc(key)}</span></h2>` + (n ? `<div class="tw"><table><thead><tr><th></th>${cols.map(c => `<th>${esc(c.name)}</th>`).join('')}</tr></thead><tbody>${body}</tbody></table></div>${n > 25 ? `<a class="more" href="#/${ct.name}/${k.col}/${encodeURIComponent(key)}">Visa alla ${n} &rarr;</a>` : ''}` : '<div class="chips" style="color:var(--mute)">Inga rader</div>') + '</div>';
+  }).join('');
+
+  $('#main').innerHTML = `<div class="trail"><a href="#/">Start</a><i>/</i>${crumbs}</div>
+  ${up ? `<div class="lvl">&uarr; Tillhör</div><div class="up">${up}</div>` : ''}
+  <div class="lvl">Du är här</div>
+  <div class="card hero"><span class="tag">${t.name}</span> <span class="hint">${t.pkcol} = ${esc(pk)}</span><h1>${esc(L.title)}</h1><div style="color:var(--mute)">${esc(L.sub)}</div><dl>${fields}</dl></div>
+  ${kids ? `<div class="lvl">&darr; Innehåller</div>${kids}` : ''}`;
+}
+
 /* ---------- Tabellvy ---------- */
 function tableView(t, fcol, fval) {
   nav(t.name);
@@ -217,10 +320,11 @@ function tableView(t, fcol, fval) {
     if (v === null) return '<td class="null">null</td>';
     const f = fkmap[c.name];
     if (f) return `<td><a href="#/${f.table}/${f.to}/${encodeURIComponent(v)}">${esc(v)}</a></td>`;
+    if (c.pk) return `<td><a href="#/r/${t.name}/${encodeURIComponent(v)}">${esc(v)}</a></td>`;
     return `<td>${esc(v)}</td>`;
   }).join('') + '</tr>').join('');
 
-  $('#main').innerHTML = `<div class="crumbs"><a href="#/">Översikt</a> / ${t.name}</div><h1>${t.name}</h1><div class="sub">${t.count} rader, ${t.cols.length} kolumner</div>
+  $('#main').innerHTML = `<div class="crumbs"><a href="#/struktur">Struktur</a> / ${t.name}</div><h1>${t.name}</h1><div class="sub">${t.count} rader, ${t.cols.length} kolumner</div>
   ${filtered ? `<div class="filter">${esc(fcol)} = ${esc(fval)} <a href="#/${t.name}">&times;</a></div>` : ''}
   ${rel}
   <div class="card"><h2>Data${rows.length === 500 ? ' (första 500)' : ''}</h2><div class="tw"><table><thead><tr>${t.cols.map(c => `<th>${c.pk ? '<span class="b pk">PK</span>' : fkmap[c.name] ? '<span class="b fk">FK</span>' : ''}${esc(c.name)}</th>`).join('')}</tr></thead><tbody>${body || `<tr><td colspan="${t.cols.length}" class="null">Inga rader</td></tr>`}</tbody></table></div></div>
