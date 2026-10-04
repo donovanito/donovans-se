@@ -1078,7 +1078,7 @@ export default function UnicornGame() {
           <span key={c} className="flex-1" style={{ background: c }} />
         ))}
       </div>
-      <h1 className="text-3xl sm:text-5xl font-extrabold text-[#5a4a8a]">Enhörningsloppet</h1>
+      <h1 className="text-3xl sm:text-5xl font-extrabold text-[#5a4a8a]">Enhörningsspelet</h1>
       <p className="text-lg sm:text-xl text-[#7a6aa8] mt-1 mb-3">Vem vill du rida med?</p>
       <div className="grid grid-cols-2 landscape:grid-cols-4 lg:grid-cols-4 gap-3 sm:gap-4 w-full max-w-4xl">
         {CHARS.map((c) => (

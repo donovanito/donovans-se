@@ -5,6 +5,6 @@
   },
   "sites": {
     "host": "sites.donovans.se",
-    "dir": null
+    "dir": "webroots/www/sites/"
   }
 }

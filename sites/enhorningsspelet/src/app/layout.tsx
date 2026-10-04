@@ -2,7 +2,7 @@ import type { Metadata, Viewport } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Enhörningsloppet",
+  title: "Enhörningsspelet",
   description: "Ett lugnt hinderspel med enhörningar och regnbågar.",
   robots: { index: false, follow: false },
 };

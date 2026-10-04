@@ -5,7 +5,7 @@ GitHub Actions builds and deploys it to one.com (SFTP, `.github/workflows/deploy
 
 | Site | Address | Folder |
 |---|---|---|
-| Enhörningsloppet (game) | https://enhorningsspelet.donovans.se | `sites/enhorningsspelet` (Next.js, static export) |
+| Enhörningsspelet (game) | https://enhorningsspelet.donovans.se | `sites/enhorningsspelet` (Next.js, static export) |
 | Portfolio | https://sites.donovans.se | `sites/sites` (static HTML, lives in `webroots/www/sites/`) |
 
 ## Add a new subdomain

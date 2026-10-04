@@ -1,4 +1,4 @@
-# Enhörningsloppet
+# Enhörningsspelet
 
 Calm unicorn obstacle-course game for kids (Hedvig, Amanda, Edith, Alex). Canvas game in `src/components/UnicornGame.tsx`.
 
