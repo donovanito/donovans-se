@@ -214,10 +214,12 @@ function overview() {
 
 
 /* ---------- Portal: Start + objektvy ---------- */
+// Tabeller som inte visas som startpunkt på Start (nås via sina föräldrar/barn, menyn och sök)
+const SECONDARY = ['dealer'];
 const keyCols = t => new Set([t.pkcol, ...t.fks.map(f => f.from)]);
 function lbl(t, r, d = 0) {
   const k = keyCols(t), c = t.cols.filter(x => !k.has(x.name) && r[x.name] != null);
-  const nm = c.find(x => /name|namn|title|titel/i.test(x.name));
+  const nm = c.find(x => /name|namn|title|titel|description|beskriv/i.test(x.name));
   // kopplingstabell (t.ex. vehicle_user): titeln byggs av föräldrarnas namn
   if (!nm && d < 2 && t.fks.length >= 2 && t.fks.some(f => t.name.startsWith(f.table + '_'))) {
     const parts = t.fks.map(f => { const pt = meta[f.table], pr = pt && r[f.from] != null && q(`select * from "${pt.name}" where "${f.to}" = ?`, [r[f.from]])[0]; return pr ? lbl(pt, pr, d + 1).title : null; }).filter(Boolean);
@@ -240,7 +242,7 @@ function home() {
   <input id="sr" class="search" placeholder="Sök i alla tabeller..." autofocus><div id="out"></div>`;
   const out = $('#out');
   const roots = () => {
-    out.innerHTML = '<div class="grid">' + Object.values(meta).filter(t => !t.fks.length).map(t => {
+    out.innerHTML = '<div class="grid">' + Object.values(meta).filter(t => !t.fks.length && !SECONDARY.includes(t.name)).map(t => {
       const rs = q(`select * from "${t.name}" limit 6`);
       return `<div class="card" style="margin:0"><h2>${t.name} <span class="hint" style="float:right">${t.count}</span></h2>${rs.map(r => item(t, r)).join('')}${t.count > 6 ? `<a class="more" href="#/${t.name}">Visa alla ${t.count} &rarr;</a>` : ''}</div>`;
     }).join('') + '</div>';

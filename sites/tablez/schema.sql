@@ -66,6 +66,7 @@ CREATE TABLE contract (
 CREATE TABLE contract_detail (
   detail_id   INTEGER PRIMARY KEY,
   contract_id INTEGER NOT NULL REFERENCES contract(contract_id),
+  vehicle_id  INTEGER NOT NULL REFERENCES vehicle(vehicle_id),
   kind        TEXT,
   description TEXT,
   monthly_cost INTEGER
@@ -156,17 +157,18 @@ INSERT INTO contract VALUES
  (8,6,'Leasing','2023-11-01',36,7600,'Avslutad');
 
 INSERT INTO contract_detail VALUES
- (1,1,'Försäkring','Helförsäkring',1100),
- (2,1,'Service','Serviceavtal 3 år',600),
- (3,2,'Försäkring','Helförsäkring',1300),
- (4,2,'Service','Serviceavtal 4 år',700),
- (5,2,'Däck','Däckpaket sommar/vinter',350),
- (6,4,'Försäkring','Flottaförsäkring',1500),
- (7,4,'Service','Serviceavtal 3 år',800),
- (8,5,'Försäkring','Flottaförsäkring',1400),
- (9,6,'Försäkring','Helförsäkring',700),
- (10,7,'Service','Serviceavtal 4 år',900),
- (11,8,'Försäkring','Helförsäkring',1000);
+ (1,1,1,'Försäkring','Helförsäkring',1100),
+ (2,1,1,'Service','Serviceavtal 3 år',600),
+ (3,2,5,'Försäkring','Helförsäkring',1300),
+ (4,2,5,'Service','Serviceavtal 4 år',700),
+ (5,2,5,'Däck','Däckpaket sommar/vinter',350),
+ (6,4,6,'Försäkring','Flottaförsäkring',1500),
+ (7,4,6,'Service','Serviceavtal 3 år',800),
+ (8,4,8,'Försäkring','Flottaförsäkring',1400),
+ (9,5,8,'Service','Serviceavtal 3 år',750),
+ (10,6,4,'Försäkring','Helförsäkring',700),
+ (11,7,7,'Service','Serviceavtal 4 år',900),
+ (12,8,2,'Försäkring','Helförsäkring',1000);
 
 INSERT INTO invoice VALUES
  (1,1,1,'2025-09',7900,'2025-09-30'),
