@@ -6,5 +6,9 @@
   "sites": {
     "host": "sites.donovans.se",
     "dir": "webroots/www/sites/"
+  },
+  "tablez": {
+    "host": "tablez.donovans.se",
+    "dir": null
   }
 }

@@ -1,0 +1,254 @@
+<!doctype html>
+<html lang="sv">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tablez</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='7' fill='%234f46e5'/><path d='M7 11h18M7 16h18M7 21h18M13 8v16' stroke='white' stroke-width='2' fill='none'/></svg>">
+<script src="sql-wasm.js"></script>
+<style>
+:root{--bg:#f6f7fb;--card:#fff;--ink:#1b1f2a;--mute:#6b7280;--line:#e3e6ee;--acc:#4f46e5;--acc-soft:#eef0ff;--pk:#b45309;--pk-soft:#fef3c7;--fk:#047857;--fk-soft:#d1fae5;--shadow:0 1px 2px rgba(20,24,40,.06),0 4px 16px rgba(20,24,40,.06)}
+@media(prefers-color-scheme:dark){:root{--bg:#0f1117;--card:#181b24;--ink:#e8eaf0;--mute:#9aa1b2;--line:#2a2f3c;--acc:#818cf8;--acc-soft:#23264a;--pk:#fbbf24;--pk-soft:#3a2d0a;--fk:#34d399;--fk-soft:#0c3326;--shadow:0 1px 2px rgba(0,0,0,.4)}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;display:flex;height:100vh;overflow:hidden}
+aside{width:230px;flex:none;background:var(--card);border-right:1px solid var(--line);display:flex;flex-direction:column;padding:16px 12px}
+.logo{display:flex;align-items:center;gap:10px;font-weight:700;font-size:18px;padding:4px 8px 16px;text-decoration:none;color:var(--ink)}
+.logo i{width:28px;height:28px;border-radius:8px;background:var(--acc);display:grid;place-items:center;color:#fff;font-style:normal;font-size:14px}
+nav a{display:flex;justify-content:space-between;align-items:center;padding:8px 10px;border-radius:8px;color:var(--ink);text-decoration:none}
+nav a:hover{background:var(--acc-soft)}
+nav a.on{background:var(--acc);color:#fff}
+nav a span{font-size:12px;color:var(--mute)}
+nav a.on span{color:#dfe1ff}
+.sec{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--mute);padding:14px 10px 6px}
+.foot{margin-top:auto;font-size:12px;color:var(--mute);padding:8px}
+main{flex:1;overflow:auto;padding:24px 28px}
+h1{margin:0 0 4px;font-size:22px}
+.sub{color:var(--mute);margin-bottom:18px}
+.crumbs{font-size:13px;color:var(--mute);margin-bottom:10px}
+.crumbs a{color:var(--acc);text-decoration:none}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;box-shadow:var(--shadow);margin-bottom:18px;overflow:hidden}
+.card h2{margin:0;padding:12px 16px;font-size:13px;letter-spacing:.04em;text-transform:uppercase;color:var(--mute);border-bottom:1px solid var(--line)}
+.chips{display:flex;flex-wrap:wrap;gap:8px;padding:14px 16px}
+.chip{display:inline-flex;align-items:center;gap:6px;padding:6px 12px;border-radius:999px;background:var(--acc-soft);color:var(--acc);text-decoration:none;font-weight:600;font-size:13px}
+.chip small{font-weight:400;color:var(--mute)}
+.chip:hover{outline:2px solid var(--acc)}
+.tw{overflow:auto;max-height:420px}
+table{border-collapse:collapse;width:100%}
+th,td{padding:8px 14px;text-align:left;white-space:nowrap;border-bottom:1px solid var(--line)}
+th{position:sticky;top:0;background:var(--card);font-size:12px;color:var(--mute);font-weight:600}
+tr:last-child td{border-bottom:0}
+tbody tr:hover td{background:var(--acc-soft)}
+td a{color:var(--fk);font-weight:600;text-decoration:none;background:var(--fk-soft);padding:1px 8px;border-radius:6px}
+td a:hover{outline:2px solid var(--fk)}
+td.null{color:var(--mute);font-style:italic}
+.b{display:inline-block;font-size:10px;font-weight:700;padding:1px 6px;border-radius:5px;margin-right:4px}
+.b.pk{background:var(--pk-soft);color:var(--pk)}.b.fk{background:var(--fk-soft);color:var(--fk)}
+.filter{display:inline-flex;gap:8px;align-items:center;background:var(--acc-soft);color:var(--acc);padding:4px 6px 4px 12px;border-radius:999px;font-size:13px;margin-bottom:14px}
+.filter a{background:var(--acc);color:#fff;border-radius:999px;padding:0 8px;text-decoration:none}
+svg{display:block}
+.er{padding:12px;overflow:auto}
+.box{cursor:pointer}
+.box .bg{fill:var(--card);stroke:var(--line);stroke-width:1.2}
+.box .hd{fill:var(--acc)}
+.box text{fill:var(--ink);font-size:12px}
+.box .tt{fill:#fff;font-weight:700;font-size:13px}
+.box .ty{fill:var(--mute);font-size:10.5px}
+.box:hover .bg{stroke:var(--acc);stroke-width:2}
+.edge{fill:none;stroke:var(--mute);stroke-width:1.4;opacity:.55}
+.edge.hi{stroke:var(--acc);stroke-width:2.4;opacity:1}
+.dim{opacity:.25}
+.sql{padding:14px 16px}
+textarea{width:100%;min-height:70px;resize:vertical;background:var(--bg);color:var(--ink);border:1px solid var(--line);border-radius:8px;padding:10px;font:13px ui-monospace,Menlo,Consolas,monospace}
+button{margin-top:8px;background:var(--acc);color:#fff;border:0;border-radius:8px;padding:8px 16px;font-weight:600;cursor:pointer}
+.err{color:#dc2626;margin-top:8px;white-space:pre-wrap}
+.note{color:var(--mute);font-size:12px;margin-top:6px}
+@media(max-width:760px){body{flex-direction:column;height:auto;overflow:auto}aside{width:100%;border-right:0;border-bottom:1px solid var(--line)}nav{display:flex;flex-wrap:wrap;gap:4px}.foot,.sec{display:none}main{padding:16px}}
+</style>
+</head>
+<body>
+<aside>
+  <a class="logo" href="#/"><i>▦</i> Tablez</a>
+  <nav id="nav"></nav>
+  <div class="foot">SQLite i webbläsaren. Ändringar sparas inte vid omladdning.</div>
+</aside>
+<main id="main"><p class="sub">Laddar databas...</p></main>
+
+<script>
+const $ = s => document.querySelector(s);
+const esc = s => String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+let db, meta = {};
+
+function q(sql, params) {
+  const r = db.exec(sql, params);
+  if (!r.length) return [];
+  return r[0].values.map(v => Object.fromEntries(r[0].columns.map((c, i) => [c, v[i]])));
+}
+
+async function init() {
+  const SQL = await initSqlJs({ locateFile: f => f });
+  db = new SQL.Database();
+  db.run(await (await fetch('schema.sql')).text());
+  loadMeta();
+  window.addEventListener('hashchange', route);
+  route();
+}
+
+function loadMeta() {
+  meta = {};
+  q("select name from sqlite_master where type='table' and name not like 'sqlite_%' order by name").forEach(({ name }) => {
+    meta[name] = {
+      name,
+      cols: q(`pragma table_info("${name}")`),
+      fks: q(`pragma foreign_key_list("${name}")`).map(f => ({ from: f.from, table: f.table, to: f.to })),
+      count: q(`select count(*) n from "${name}"`)[0].n,
+    };
+  });
+  Object.values(meta).forEach(t => {
+    t.pkcol = (t.cols.find(c => c.pk) || t.cols[0]).name;
+    t.children = [];
+  });
+  Object.values(meta).forEach(t => t.fks.forEach(f => {
+    if (meta[f.table]) { f.to = f.to || meta[f.table].pkcol; meta[f.table].children.push({ table: t.name, col: f.from, ref: f.to }); }
+  }));
+}
+
+function nav(active) {
+  $('#nav').innerHTML = `<a href="#/" class="${!active ? 'on' : ''}">Översikt</a><div class="sec">Tabeller</div>` +
+    Object.values(meta).map(t => `<a href="#/${t.name}" class="${active === t.name ? 'on' : ''}">${t.name}<span>${t.count}</span></a>`).join('') +
+    `<div class="sec">Verktyg</div><a href="#/sql" class="${active === '__sql' ? 'on' : ''}">SQL</a>`;
+}
+
+function route() {
+  const p = decodeURIComponent(location.hash.slice(2)).split('/');
+  if (!p[0]) return overview();
+  if (p[0] === 'sql') return sqlView();
+  if (meta[p[0]]) return tableView(meta[p[0]], p[1], p[2]);
+  overview();
+}
+
+/* ---------- Översikt: ER-diagram ---------- */
+function overview() {
+  nav(null);
+  const T = Object.values(meta), W = 230, RH = 22, HH = 34, GX = 120, GY = 28;
+  const level = {};
+  const lv = (n, d = 0) => {
+    if (level[n] !== undefined) return level[n];
+    if (d > 20) return 0;
+    const ps = meta[n].fks.filter(f => f.table !== n && meta[f.table]);
+    return level[n] = ps.length ? 1 + Math.max(...ps.map(f => lv(f.table, d + 1))) : 0;
+  };
+  T.forEach(t => lv(t.name));
+  const colY = {}, pos = {};
+  let H = 0, maxL = 0;
+  T.forEach(t => {
+    const l = level[t.name]; maxL = Math.max(maxL, l);
+    colY[l] = colY[l] || 20;
+    const h = HH + t.cols.length * RH + 6;
+    pos[t.name] = { x: 20 + l * (W + GX), y: colY[l], h };
+    colY[l] += h + GY; H = Math.max(H, colY[l]);
+  });
+  const Wd = 40 + (maxL + 1) * (W + GX) - GX;
+  let edges = '';
+  T.forEach(t => t.fks.forEach(f => {
+    const pt = meta[f.table]; if (!pt) return;
+    const a = pos[t.name], b = pos[f.table];
+    const ci = t.cols.findIndex(c => c.name === f.from), pi = pt.cols.findIndex(c => c.name === f.to);
+    const x1 = a.x, y1 = a.y + HH + ci * RH + RH / 2 + 2, x2 = b.x + W, y2 = b.y + HH + pi * RH + RH / 2 + 2;
+    const dx = Math.max(40, (x1 - x2) / 2);
+    edges += `<path class="edge" data-a="${t.name}" data-b="${f.table}" d="M${x1},${y1} C${x1 - dx},${y1} ${x2 + dx},${y2} ${x2},${y2}"/><circle cx="${x1}" cy="${y1}" r="3" fill="var(--fk)"/><circle cx="${x2}" cy="${y2}" r="3" fill="var(--pk)"/>`;
+  }));
+  const boxes = T.map(t => {
+    const p = pos[t.name];
+    const rows = t.cols.map((c, i) => {
+      const fk = t.fks.some(f => f.from === c.name);
+      const tag = c.pk ? 'PK' : fk ? 'FK' : '';
+      const col = c.pk ? 'var(--pk)' : 'var(--fk)';
+      return `<text x="14" y="${HH + i * RH + 16}" style="font-weight:${c.pk ? 700 : 400}">${esc(c.name)}</text>` +
+        `<text class="ty" x="${W - 14}" y="${HH + i * RH + 16}" text-anchor="end">${tag ? `<tspan fill="${col}" font-weight="700">${tag} </tspan>` : ''}${esc((c.type || '').toLowerCase())}</text>`;
+    }).join('');
+    return `<g class="box" data-t="${t.name}" transform="translate(${p.x},${p.y})" onclick="location.hash='#/${t.name}'">` +
+      `<rect class="bg" width="${W}" height="${p.h}" rx="10"/><path class="hd" d="M0,10a10,10 0 0 1 10,-10h${W - 20}a10,10 0 0 1 10,10v${HH - 10}h-${W}z"/>` +
+      `<text class="tt" x="14" y="22">${esc(t.name)}</text><text class="tt" x="${W - 14}" y="22" text-anchor="end" style="font-weight:400;opacity:.8">${t.count} rader</text>${rows}</g>`;
+  }).join('');
+  $('#main').innerHTML = `<h1>Databasöversikt</h1><div class="sub">${T.length} tabeller. Klicka på en tabell för att gå ned i den. Linjer visar främmande nycklar (<b style="color:var(--fk)">●</b> barn &rarr; <b style="color:var(--pk)">●</b> förälder).</div>
+  <div class="card er"><svg width="${Wd}" height="${H}" viewBox="0 0 ${Wd} ${H}">${edges}${boxes}</svg></div>`;
+  document.querySelectorAll('.box').forEach(g => {
+    g.onmouseenter = () => {
+      const n = g.dataset.t, rel = new Set([n]);
+      document.querySelectorAll('.edge').forEach(e => {
+        const on = e.dataset.a === n || e.dataset.b === n;
+        e.classList.toggle('hi', on); if (on) { rel.add(e.dataset.a); rel.add(e.dataset.b); }
+      });
+      document.querySelectorAll('.box').forEach(b => b.classList.toggle('dim', !rel.has(b.dataset.t)));
+    };
+    g.onmouseleave = () => document.querySelectorAll('.edge,.box').forEach(e => e.classList.remove('hi', 'dim'));
+  });
+}
+
+/* ---------- Tabellvy ---------- */
+function tableView(t, fcol, fval) {
+  nav(t.name);
+  const filtered = fcol && t.cols.some(c => c.name === fcol);
+  const rows = filtered ? q(`select * from "${t.name}" where "${fcol}" = ? limit 500`, [fval]) : q(`select * from "${t.name}" limit 500`);
+  const fkmap = Object.fromEntries(t.fks.map(f => [f.from, f]));
+  const parents = [...new Set(t.fks.map(f => f.table))];
+  const kids = t.children;
+
+  const chips = (list, fn) => list.map(fn).join('');
+  let rel = '';
+  if (parents.length) rel += `<div class="card"><h2>Refererar till (förälder)</h2><div class="chips">${chips(t.fks, f => `<a class="chip" href="#/${f.table}">${f.table}<small>via ${f.from}</small></a>`)}</div></div>`;
+  if (kids.length) {
+    const one = filtered && rows.length === 1 ? rows[0] : null;
+    rel += `<div class="card"><h2>Refereras av (barn)${one ? ' - denna rad' : ''}</h2><div class="chips">${chips(kids, k => {
+      if (one) {
+        const n = q(`select count(*) n from "${k.table}" where "${k.col}" = ?`, [one[k.ref]])[0].n;
+        return `<a class="chip" href="#/${k.table}/${k.col}/${encodeURIComponent(one[k.ref])}">${k.table}<small>${n} st</small></a>`;
+      }
+      return `<a class="chip" href="#/${k.table}">${k.table}<small>via ${k.col}</small></a>`;
+    })}</div></div>`;
+  }
+  const colCard = `<div class="card"><h2>Kolumner</h2><div class="tw"><table><thead><tr><th>Namn</th><th>Typ</th><th>Nyckel</th><th>Regler</th></tr></thead><tbody>${t.cols.map(c => {
+    const f = fkmap[c.name];
+    return `<tr><td>${esc(c.name)}</td><td>${esc(c.type || '')}</td><td>${c.pk ? '<span class="b pk">PK</span>' : ''}${f ? `<a href="#/${f.table}" style="padding:0;background:none"><span class="b fk">FK</span> ${f.table}.${f.to}</a>` : ''}</td><td class="null" style="font-style:normal">${c.notnull ? 'NOT NULL' : ''}</td></tr>`;
+  }).join('')}</tbody></table></div></div>`;
+
+  const body = rows.map(r => '<tr>' + t.cols.map(c => {
+    const v = r[c.name];
+    if (v === null) return '<td class="null">null</td>';
+    const f = fkmap[c.name];
+    if (f) return `<td><a href="#/${f.table}/${f.to}/${encodeURIComponent(v)}">${esc(v)}</a></td>`;
+    return `<td>${esc(v)}</td>`;
+  }).join('') + '</tr>').join('');
+
+  $('#main').innerHTML = `<div class="crumbs"><a href="#/">Översikt</a> / ${t.name}</div><h1>${t.name}</h1><div class="sub">${t.count} rader, ${t.cols.length} kolumner</div>
+  ${filtered ? `<div class="filter">${esc(fcol)} = ${esc(fval)} <a href="#/${t.name}">&times;</a></div>` : ''}
+  ${rel}
+  <div class="card"><h2>Data${rows.length === 500 ? ' (första 500)' : ''}</h2><div class="tw"><table><thead><tr>${t.cols.map(c => `<th>${c.pk ? '<span class="b pk">PK</span>' : fkmap[c.name] ? '<span class="b fk">FK</span>' : ''}${esc(c.name)}</th>`).join('')}</tr></thead><tbody>${body || `<tr><td colspan="${t.cols.length}" class="null">Inga rader</td></tr>`}</tbody></table></div></div>
+  ${colCard}`;
+}
+
+/* ---------- SQL ---------- */
+function sqlView() {
+  nav('__sql');
+  $('#main').innerHTML = `<h1>SQL</h1><div class="sub">Kör valfri SQL mot databasen. Ctrl+Enter kör.</div>
+  <div class="card"><div class="sql"><textarea id="sq" spellcheck="false">select c.name, v.make, v.model, k.product, k.monthly_fee
+from contract k
+join customer c on c.customer_id = k.customer_id
+join vehicle v on v.vehicle_id = k.vehicle_id
+order by k.monthly_fee desc;</textarea><button id="run">Kör</button><div class="note">Ändringar finns bara tills sidan laddas om.</div><div id="err" class="err"></div></div></div><div id="res"></div>`;
+  const run = () => {
+    $('#err').textContent = '';
+    try {
+      const r = db.exec($('#sq').value);
+      loadMeta(); nav('__sql');
+      $('#res').innerHTML = r.map(s => `<div class="card"><div class="tw"><table><thead><tr>${s.columns.map(c => `<th>${esc(c)}</th>`).join('')}</tr></thead><tbody>${s.values.map(v => `<tr>${v.map(x => x === null ? '<td class="null">null</td>' : `<td>${esc(x)}</td>`).join('')}</tr>`).join('')}</tbody></table></div></div>`).join('') || '<p class="sub">Klart.</p>';
+    } catch (e) { $('#err').textContent = e.message; }
+  };
+  $('#run').onclick = run;
+  $('#sq').onkeydown = e => { if (e.ctrlKey && e.key === 'Enter') run(); };
+}
+
+init().catch(e => $('#main').innerHTML = `<p class="err">Kunde inte starta: ${esc(e.message)}</p>`);
+</script>
+</body>
+</html>
