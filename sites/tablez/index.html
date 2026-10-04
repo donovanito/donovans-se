@@ -96,12 +96,24 @@ tr.go{cursor:pointer}
   <nav id="nav"></nav>
   <div class="foot">SQLite i webbläsaren. Ändringar sparas inte vid omladdning.</div>
 </aside>
-<main id="main"><p class="sub">Laddar databas...</p></main>
+<main id="main"><p class="sub">...</p></main>
 
 <script>
 const $ = s => document.querySelector(s);
 const esc = s => String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 let db, meta = {};
+// Översättningar från admin_translation (språk via ?lang=, standard sv)
+const LANG = new URLSearchParams(location.search).get('lang') || 'sv';
+let TR = {};
+const TX = (k, fb) => TR[k] ?? fb ?? k;
+const ui = (k, fb) => TX('UI.' + k, fb);
+const tn = n => TX(n.toUpperCase(), n);
+const tc = (t, c) => TX(`${t.toUpperCase()}.${c.toUpperCase()}`, TX(`*.${c.toUpperCase()}`, c));
+const isAdmin = n => n.startsWith('admin_');
+function loadTr() {
+  TR = {};
+  try { q('select translation_key k, text from admin_translation where lang = ?', [LANG]).forEach(r => TR[r.k] = r.text); } catch (e) {}
+}
 
 function q(sql, params) {
   const r = db.exec(sql, params);
@@ -113,7 +125,9 @@ async function init() {
   const SQL = await initSqlJs({ locateFile: f => f });
   db = new SQL.Database();
   db.run(await (await fetch('schema.sql')).text());
-  loadMeta();
+  loadMeta(); loadTr();
+  document.documentElement.lang = LANG;
+  document.querySelector('.foot').textContent = ui('FOOTER');
   window.addEventListener('hashchange', route);
   route();
 }
@@ -138,9 +152,12 @@ function loadMeta() {
 }
 
 function nav(active) {
-  $('#nav').innerHTML = `<a href="#/" class="${active === '__home' ? 'on' : ''}">Start</a><a href="#/struktur" class="${active === '__er' ? 'on' : ''}">Struktur</a><div class="sec">Tabeller</div>` +
-    Object.values(meta).map(t => `<a href="#/${t.name}" class="${active === t.name ? 'on' : ''}">${t.name}<span>${t.count}</span></a>`).join('') +
-    `<div class="sec">Verktyg</div><a href="#/sql" class="${active === '__sql' ? 'on' : ''}">SQL</a>`;
+  const link = t => `<a href="#/${t.name}" class="${active === t.name ? 'on' : ''}">${esc(tn(t.name))}<span>${t.count}</span></a>`;
+  const all = Object.values(meta), data = all.filter(t => !isAdmin(t.name)), adm = all.filter(t => isAdmin(t.name));
+  $('#nav').innerHTML = `<a href="#/" class="${active === '__home' ? 'on' : ''}">${ui('START')}</a><a href="#/struktur" class="${active === '__er' ? 'on' : ''}">${ui('STRUCTURE')}</a><div class="sec">${ui('TABLES')}</div>` +
+    data.map(link).join('') +
+    `<div class="sec">${ui('TOOLS')}</div><a href="#/sql" class="${active === '__sql' ? 'on' : ''}">SQL</a>` +
+    (adm.length ? `<div class="sec">${ui('ADMIN')}</div>` + adm.map(link).join('') : '');
 }
 
 function route() {
@@ -156,7 +173,7 @@ function route() {
 /* ---------- Översikt: ER-diagram ---------- */
 function overview() {
   nav('__er');
-  const T = Object.values(meta), W = 230, RH = 22, HH = 34, GX = 120, GY = 28;
+  const T = Object.values(meta).filter(t => !isAdmin(t.name)), W = 230, RH = 22, HH = 34, GX = 120, GY = 28;
   const level = {};
   const lv = (n, d = 0) => {
     if (level[n] !== undefined) return level[n];
@@ -190,14 +207,14 @@ function overview() {
       const fk = t.fks.some(f => f.from === c.name);
       const tag = c.pk ? 'PK' : fk ? 'FK' : '';
       const col = c.pk ? 'var(--pk)' : 'var(--fk)';
-      return `<text x="14" y="${HH + i * RH + 16}" style="font-weight:${c.pk ? 700 : 400}">${esc(c.name)}</text>` +
+      return `<text x="14" y="${HH + i * RH + 16}" style="font-weight:${c.pk ? 700 : 400}">${esc(tc(t.name, c.name))}<title>${esc(c.name)}</title></text>` +
         `<text class="ty" x="${W - 14}" y="${HH + i * RH + 16}" text-anchor="end">${tag ? `<tspan fill="${col}" font-weight="700">${tag} </tspan>` : ''}${esc((c.type || '').toLowerCase())}</text>`;
     }).join('');
     return `<g class="box" data-t="${t.name}" transform="translate(${p.x},${p.y})" onclick="location.hash='#/${t.name}'">` +
       `<rect class="bg" width="${W}" height="${p.h}" rx="10"/><path class="hd" d="M0,10a10,10 0 0 1 10,-10h${W - 20}a10,10 0 0 1 10,10v${HH - 10}h-${W}z"/>` +
-      `<text class="tt" x="14" y="22">${esc(t.name)}</text><text class="tt" x="${W - 14}" y="22" text-anchor="end" style="font-weight:400;opacity:.8">${t.count} rader</text>${rows}</g>`;
+      `<text class="tt" x="14" y="22">${esc(tn(t.name))}<title>${esc(t.name)}</title></text><text class="tt" x="${W - 14}" y="22" text-anchor="end" style="font-weight:400;opacity:.8">${t.count} ${ui('ROWS')}</text>${rows}</g>`;
   }).join('');
-  $('#main').innerHTML = `<h1>Databasöversikt</h1><div class="sub">${T.length} tabeller. Klicka på en tabell för att gå ned i den. Linjer visar främmande nycklar (<b style="color:var(--fk)">●</b> barn &rarr; <b style="color:var(--pk)">●</b> förälder).</div>
+  $('#main').innerHTML = `<h1>${ui('ER_TITLE')}</h1><div class="sub">${T.length} ${ui('TABLES').toLowerCase()}. ${ui('ER_SUB')} (<b style="color:var(--fk)">●</b> ${ui('CHILD')} &rarr; <b style="color:var(--pk)">●</b> ${ui('PARENT')}).</div>
   <div class="card er"><svg width="${Wd}" height="${H}" viewBox="0 0 ${Wd} ${H}">${edges}${boxes}</svg></div>`;
   document.querySelectorAll('.box').forEach(g => {
     g.onmouseenter = () => {
@@ -238,30 +255,30 @@ const item = (t, r) => { const l = lbl(t, r); return `<a class="item" href="${rl
 
 function home() {
   nav('__home');
-  $('#main').innerHTML = `<h1>Start</h1><div class="sub">Sök eller välj var du vill börja.</div>
-  <input id="sr" class="search" placeholder="Sök i alla tabeller..." autofocus><div id="out"></div>`;
+  $('#main').innerHTML = `<h1>${ui('START')}</h1><div class="sub">${ui('HOME_SUB')}</div>
+  <input id="sr" class="search" placeholder="${esc(ui('SEARCH'))}" autofocus><div id="out"></div>`;
   const out = $('#out');
   const roots = () => {
-    out.innerHTML = '<div class="grid">' + Object.values(meta).filter(t => !t.fks.length && !SECONDARY.includes(t.name)).map(t => {
+    out.innerHTML = '<div class="grid">' + Object.values(meta).filter(t => !t.fks.length && !SECONDARY.includes(t.name) && !isAdmin(t.name)).map(t => {
       const rs = q(`select * from "${t.name}" limit 6`);
-      return `<div class="card" style="margin:0"><h2>${t.name} <span class="hint" style="float:right">${t.count}</span></h2>${rs.map(r => item(t, r)).join('')}${t.count > 6 ? `<a class="more" href="#/${t.name}">Visa alla ${t.count} &rarr;</a>` : ''}</div>`;
+      return `<div class="card" style="margin:0"><h2>${esc(tn(t.name))} <span class="hint" style="float:right">${t.count}</span></h2>${rs.map(r => item(t, r)).join('')}${t.count > 6 ? `<a class="more" href="#/${t.name}">${ui('SHOW_ALL')} ${t.count} &rarr;</a>` : ''}</div>`;
     }).join('') + '</div>';
   };
   roots();
   $('#sr').oninput = e => {
     const v = e.target.value.trim(); if (!v) return roots();
-    const html = Object.values(meta).map(t => {
+    const html = Object.values(meta).filter(t => !isAdmin(t.name)).map(t => {
       const rs = q(`select * from "${t.name}" where ${t.cols.map(c => `cast("${c.name}" as text) like ?`).join(' or ')} limit 8`, t.cols.map(() => `%${v}%`));
-      return rs.length ? `<div class="card"><h2>${t.name}</h2>${rs.map(r => item(t, r)).join('')}</div>` : '';
+      return rs.length ? `<div class="card"><h2>${esc(tn(t.name))}</h2>${rs.map(r => item(t, r)).join('')}</div>` : '';
     }).join('');
-    out.innerHTML = html || '<p class="sub">Inga träffar.</p>';
+    out.innerHTML = html || `<p class="sub">${ui('NO_HITS')}</p>`;
   };
 }
 
 function record(t, pk) {
   nav(t.name);
   const r = q(`select * from "${t.name}" where "${t.pkcol}" = ?`, [pk])[0];
-  if (!r) { $('#main').innerHTML = `<p class="sub">Hittade ingen rad ${esc(t.name)} ${esc(pk)}. <a href="#/">Till start</a></p>`; return; }
+  if (!r) { $('#main').innerHTML = `<p class="sub">${ui('NOT_FOUND')} ${esc(tn(t.name))} ${esc(pk)}. <a href="#/">${ui('START')}</a></p>`; return; }
   // brödsmulor: följ första föräldern uppåt
   const trail = []; let ct = t, cr = r;
   for (let i = 0; i < 6; i++) {
@@ -276,13 +293,13 @@ function record(t, pk) {
   const up = t.fks.filter(f => r[f.from] != null && meta[f.table]).map(f => {
     const pt = meta[f.table], pr = q(`select * from "${pt.name}" where "${f.to}" = ?`, [r[f.from]])[0]; if (!pr) return '';
     const l = lbl(pt, pr);
-    return `<a href="${rlink(pt, pr)}"><small class="hint">&uarr; ${pt.name} &middot; via ${f.from}</small><b>${esc(l.title)}</b><div style="color:var(--mute)">${esc(l.sub)}</div></a>`;
+    return `<a href="${rlink(pt, pr)}"><small class="hint">&uarr; ${esc(tn(pt.name))} &middot; ${esc(tc(t.name, f.from))}</small><b>${esc(l.title)}</b><div style="color:var(--mute)">${esc(l.sub)}</div></a>`;
   }).join('');
 
   const fields = t.cols.filter(c => !c.pk).map(c => {
     const v = r[c.name], f = fkmap[c.name]; let val = v === null ? '<span style="color:var(--mute)">-</span>' : esc(v);
     if (f && v !== null && meta[f.table]) { const pr = q(`select * from "${f.table}" where "${f.to}" = ?`, [v])[0]; if (pr) val = `<a href="${rlink(meta[f.table], pr)}">${esc(lbl(meta[f.table], pr).title)}</a>`; }
-    return `<dt>${esc(c.name)}</dt><dd>${val}</dd>`;
+    return `<dt>${esc(tc(t.name, c.name))}</dt><dd>${val}</dd>`;
   }).join('');
 
   const kids = t.children.map(k => {
@@ -291,14 +308,14 @@ function record(t, pk) {
     const rs = q(`select * from "${k.table}" where "${k.col}" = ? limit 25`, [key]);
     const cols = ct.cols.filter(c => !c.pk && c.name !== k.col).slice(0, 6);
     const body = rs.map(x => `<tr class="go" onclick="location.hash='${rlink(ct, x)}'"><td class="hint">#${esc(x[ct.pkcol])}</td>${cols.map(c => `<td>${x[c.name] === null ? '<span style="color:var(--mute)">-</span>' : esc(fkText(ct, c.name, x[c.name]))}</td>`).join('')}</tr>`).join('');
-    return `<div class="card kid"><h2>${ct.name} <span class="hint">${n} st &middot; ${k.col} = ${esc(key)}</span></h2>` + (n ? `<div class="tw"><table><thead><tr><th></th>${cols.map(c => `<th>${esc(c.name)}</th>`).join('')}</tr></thead><tbody>${body}</tbody></table></div>${n > 25 ? `<a class="more" href="#/${ct.name}/${k.col}/${encodeURIComponent(key)}">Visa alla ${n} &rarr;</a>` : ''}` : '<div class="chips" style="color:var(--mute)">Inga rader</div>') + '</div>';
+    return `<div class="card kid"><h2>${esc(tn(ct.name))} <span class="hint">${n} ${ui('PCS')} &middot; ${k.col} = ${esc(key)}</span></h2>` + (n ? `<div class="tw"><table><thead><tr><th></th>${cols.map(c => `<th>${esc(tc(ct.name, c.name))}</th>`).join('')}</tr></thead><tbody>${body}</tbody></table></div>${n > 25 ? `<a class="more" href="#/${ct.name}/${k.col}/${encodeURIComponent(key)}">${ui('SHOW_ALL')} ${n} &rarr;</a>` : ''}` : `<div class="chips" style="color:var(--mute)">${ui('NO_ROWS')}</div>`) + '</div>';
   }).join('');
 
-  $('#main').innerHTML = `<div class="trail"><a href="#/">Start</a><i>/</i>${crumbs}</div>
-  ${up ? `<div class="lvl">&uarr; Tillhör</div><div class="up">${up}</div>` : ''}
-  <div class="lvl">Du är här</div>
-  <div class="card hero"><span class="tag">${t.name}</span> <span class="hint">${t.pkcol} = ${esc(pk)}</span><h1>${esc(L.title)}</h1><div style="color:var(--mute)">${esc(L.sub)}</div><dl>${fields}</dl></div>
-  ${kids ? `<div class="lvl">&darr; Innehåller</div>${kids}` : ''}`;
+  $('#main').innerHTML = `<div class="trail"><a href="#/">${ui('START')}</a><i>/</i>${crumbs}</div>
+  ${up ? `<div class="lvl">&uarr; ${ui('UP')}</div><div class="up">${up}</div>` : ''}
+  <div class="lvl">${ui('HERE')}</div>
+  <div class="card hero"><span class="tag">${esc(tn(t.name))}</span> <span class="hint">${t.pkcol} = ${esc(pk)}</span><h1>${esc(L.title)}</h1><div style="color:var(--mute)">${esc(L.sub)}</div><dl>${fields}</dl></div>
+  ${kids ? `<div class="lvl">&darr; ${ui('DOWN')}</div>${kids}` : ''}`;
 }
 
 /* ---------- Tabellvy ---------- */
@@ -312,20 +329,20 @@ function tableView(t, fcol, fval) {
 
   const chips = (list, fn) => list.map(fn).join('');
   let rel = '';
-  if (parents.length) rel += `<div class="card"><h2>Refererar till (förälder)</h2><div class="chips">${chips(t.fks, f => `<a class="chip" href="#/${f.table}">${f.table}<small>via ${f.from}</small></a>`)}</div></div>`;
+  if (parents.length) rel += `<div class="card"><h2>${ui('REFERS_TO')}</h2><div class="chips">${chips(t.fks, f => `<a class="chip" href="#/${f.table}">${esc(tn(f.table))}<small>${esc(tc(t.name, f.from))}</small></a>`)}</div></div>`;
   if (kids.length) {
     const one = filtered && rows.length === 1 ? rows[0] : null;
-    rel += `<div class="card"><h2>Refereras av (barn)${one ? ' - denna rad' : ''}</h2><div class="chips">${chips(kids, k => {
+    rel += `<div class="card"><h2>${ui('REFERRED_BY')}${one ? ' - ' + ui('THIS_ROW') : ''}</h2><div class="chips">${chips(kids, k => {
       if (one) {
         const n = q(`select count(*) n from "${k.table}" where "${k.col}" = ?`, [one[k.ref]])[0].n;
-        return `<a class="chip" href="#/${k.table}/${k.col}/${encodeURIComponent(one[k.ref])}">${k.table}<small>${n} st</small></a>`;
+        return `<a class="chip" href="#/${k.table}/${k.col}/${encodeURIComponent(one[k.ref])}">${esc(tn(k.table))}<small>${n} ${ui('PCS')}</small></a>`;
       }
-      return `<a class="chip" href="#/${k.table}">${k.table}<small>via ${k.col}</small></a>`;
+      return `<a class="chip" href="#/${k.table}">${esc(tn(k.table))}<small>${esc(tc(k.table, k.col))}</small></a>`;
     })}</div></div>`;
   }
-  const colCard = `<div class="card"><h2>Kolumner</h2><div class="tw"><table><thead><tr><th>Namn</th><th>Typ</th><th>Nyckel</th><th>Regler</th></tr></thead><tbody>${t.cols.map(c => {
+  const colCard = `<div class="card"><h2>${ui('COLUMN_LIST')}</h2><div class="tw"><table><thead><tr><th>${ui('NAME')}</th><th>${ui('FIELD_NAME')}</th><th>${ui('TYPE')}</th><th>${ui('KEY')}</th><th>${ui('RULES')}</th></tr></thead><tbody>${t.cols.map(c => {
     const f = fkmap[c.name];
-    return `<tr><td>${esc(c.name)}</td><td>${esc(c.type || '')}</td><td>${c.pk ? '<span class="b pk">PK</span>' : ''}${f ? `<a href="#/${f.table}" style="padding:0;background:none"><span class="b fk">FK</span> ${f.table}.${f.to}</a>` : ''}</td><td class="null" style="font-style:normal">${c.notnull ? 'NOT NULL' : ''}</td></tr>`;
+    return `<tr><td>${esc(tc(t.name, c.name))}</td><td class="hint">${esc(c.name)}</td><td>${esc(c.type || '')}</td><td>${c.pk ? '<span class="b pk">PK</span>' : ''}${f ? `<a href="#/${f.table}" style="padding:0;background:none"><span class="b fk">FK</span> ${f.table}.${f.to}</a>` : ''}</td><td class="null" style="font-style:normal">${c.notnull ? 'NOT NULL' : ''}</td></tr>`;
   }).join('')}</tbody></table></div></div>`;
 
   const body = rows.map(r => '<tr>' + t.cols.map(c => {
@@ -333,32 +350,32 @@ function tableView(t, fcol, fval) {
     if (v === null) return '<td class="null">null</td>';
     const f = fkmap[c.name];
     if (f) return `<td><a href="#/${f.table}/${f.to}/${encodeURIComponent(v)}">${esc(v)}</a></td>`;
-    if (c.pk) return `<td><a href="#/r/${t.name}/${encodeURIComponent(v)}">${esc(v)}</a></td>`;
+    if (c.pk && !isAdmin(t.name)) return `<td><a href="#/r/${t.name}/${encodeURIComponent(v)}">${esc(v)}</a></td>`;
     return `<td>${esc(v)}</td>`;
   }).join('') + '</tr>').join('');
 
-  $('#main').innerHTML = `<div class="crumbs"><a href="#/struktur">Struktur</a> / ${t.name}</div><h1>${t.name}</h1><div class="sub">${t.count} rader, ${t.cols.length} kolumner</div>
+  $('#main').innerHTML = `<div class="crumbs"><a href="#/struktur">${ui('STRUCTURE')}</a> / ${esc(tn(t.name))}</div><h1>${esc(tn(t.name))} <span class="hint">${t.name}</span></h1><div class="sub">${t.count} ${ui('ROWS')}, ${t.cols.length} ${ui('COLUMNS')}</div>
   ${filtered ? `<div class="filter">${esc(fcol)} = ${esc(fval)} <a href="#/${t.name}">&times;</a></div>` : ''}
   ${rel}
-  <div class="card"><h2>Data${rows.length === 500 ? ' (första 500)' : ''}</h2><div class="tw"><table><thead><tr>${t.cols.map(c => `<th>${c.pk ? '<span class="b pk">PK</span>' : fkmap[c.name] ? '<span class="b fk">FK</span>' : ''}${esc(c.name)}</th>`).join('')}</tr></thead><tbody>${body || `<tr><td colspan="${t.cols.length}" class="null">Inga rader</td></tr>`}</tbody></table></div></div>
+  <div class="card"><h2>${ui('DATA')}${rows.length === 500 ? ' ' + ui('FIRST_500') : ''}</h2><div class="tw"><table><thead><tr>${t.cols.map(c => `<th>${c.pk ? '<span class="b pk">PK</span>' : fkmap[c.name] ? '<span class="b fk">FK</span>' : ''}${esc(tc(t.name, c.name))}</th>`).join('')}</tr></thead><tbody>${body || `<tr><td colspan="${t.cols.length}" class="null">${ui('NO_ROWS')}</td></tr>`}</tbody></table></div></div>
   ${colCard}`;
 }
 
 /* ---------- SQL ---------- */
 function sqlView() {
   nav('__sql');
-  $('#main').innerHTML = `<h1>SQL</h1><div class="sub">Kör valfri SQL mot databasen. Ctrl+Enter kör.</div>
+  $('#main').innerHTML = `<h1>SQL</h1><div class="sub">${ui('SQL_SUB')}</div>
   <div class="card"><div class="sql"><textarea id="sq" spellcheck="false">select c.name, v.make, v.model, k.product, k.monthly_fee
 from contract k
 join customer c on c.customer_id = k.customer_id
 join vehicle v on v.vehicle_id = k.vehicle_id
-order by k.monthly_fee desc;</textarea><button id="run">Kör</button><div class="note">Ändringar finns bara tills sidan laddas om.</div><div id="err" class="err"></div></div></div><div id="res"></div>`;
+order by k.monthly_fee desc;</textarea><button id="run">${ui('RUN')}</button><div class="note">${ui('SQL_NOTE')}</div><div id="err" class="err"></div></div></div><div id="res"></div>`;
   const run = () => {
     $('#err').textContent = '';
     try {
       const r = db.exec($('#sq').value);
-      loadMeta(); nav('__sql');
-      $('#res').innerHTML = r.map(s => `<div class="card"><div class="tw"><table><thead><tr>${s.columns.map(c => `<th>${esc(c)}</th>`).join('')}</tr></thead><tbody>${s.values.map(v => `<tr>${v.map(x => x === null ? '<td class="null">null</td>' : `<td>${esc(x)}</td>`).join('')}</tr>`).join('')}</tbody></table></div></div>`).join('') || '<p class="sub">Klart.</p>';
+      loadMeta(); loadTr(); nav('__sql');
+      $('#res').innerHTML = r.map(s => `<div class="card"><div class="tw"><table><thead><tr>${s.columns.map(c => `<th>${esc(c)}</th>`).join('')}</tr></thead><tbody>${s.values.map(v => `<tr>${v.map(x => x === null ? '<td class="null">null</td>' : `<td>${esc(x)}</td>`).join('')}</tr>`).join('')}</tbody></table></div></div>`).join('') || `<p class="sub">${ui('DONE')}</p>`;
     } catch (e) { $('#err').textContent = e.message; }
   };
   $('#run').onclick = run;
