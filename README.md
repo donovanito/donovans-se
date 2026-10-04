@@ -6,6 +6,7 @@ GitHub Actions builds and deploys it to one.com (SFTP, `.github/workflows/deploy
 | Site | Address | Folder |
 |---|---|---|
 | Enhörningsloppet (game) | https://enhorningsspelet.donovans.se | `sites/enhorningsspelet` (Next.js, static export) |
+| Portfolio | https://sites.donovans.se | `sites/sites` (static HTML, lives in `webroots/www/sites/`) |
 
 ## Add a new subdomain
 
@@ -28,7 +29,12 @@ A site with `"dir": null` is skipped, so you can add code before the folder is k
 Add these three **repository secrets** (Settings > Secrets and variables > Actions) with the same values as in the biili repo:
 `FTP_SERVER`, `FTP_USERNAME`, `FTP_PASSWORD`.
 
+## Importing an existing site
+
+Actions > "Inspect one.com folder (read-only)" downloads a folder from one.com and prints its text files in the log, so a site that only exists on the server can be copied into `sites/<name>/`. It never writes to one.com.
+
 ## Safety
 
 - The deploy mirrors with `--delete`, so a site's web root is fully owned by this repo. Give every subdomain its own folder and never reuse a folder that holds other content.
-- The workflow refuses to deploy to biili.se's web root (`webroots/2367fa6d/`) and refuses to deploy a site without `index.html`.
+- The workflow refuses to deploy to biili.se's web root (`webroots/2367fa6d/`) and to the shared `webroots/www/` root (other sites live in subfolders of it), and refuses to deploy a site without `index.html`.
+- Sites inside `www/` use a subfolder `dir`, e.g. `webroots/www/sites/`.

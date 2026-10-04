@@ -2,5 +2,9 @@
   "enhorningsspelet": {
     "host": "enhorningsspelet.donovans.se",
     "dir": "webroots/05bffb27/"
+  },
+  "sites": {
+    "host": "sites.donovans.se",
+    "dir": null
   }
 }
