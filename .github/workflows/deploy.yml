@@ -1,0 +1,88 @@
+name: Deploy sites to one.com
+
+# Every folder in sites/ that is listed in sites.json with a "dir" (its
+# one.com webroot) is deployed. Push to main deploys all of them; "Run
+# workflow" can deploy just one (type its name).
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      site:
+        description: "Only deploy this site (folder name in sites/). Empty = all."
+        required: false
+        default: ""
+
+jobs:
+  plan:
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.m.outputs.matrix }}
+      count: ${{ steps.m.outputs.count }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: m
+        env:
+          ONLY: ${{ github.event.inputs.site }}
+        run: |
+          list=$(jq -c --arg only "$ONLY" '[to_entries[]
+            | select((.value.dir // "") | test("^webroots/[A-Za-z0-9]+/$"))
+            | select($only == "" or .key == $only)
+            | {site: .key, dir: .value.dir}]' sites.json)
+          echo "matrix={\"include\":$list}" >> "$GITHUB_OUTPUT"
+          echo "count=$(echo "$list" | jq 'length')" >> "$GITHUB_OUTPUT"
+          echo "Sites to deploy: $list"
+          jq -r 'to_entries[] | select((.value.dir // "") == "") | "::notice::Skipping \(.key): no webroot dir set in sites.json yet"' sites.json
+
+  deploy:
+    needs: plan
+    if: needs.plan.outputs.count != '0'
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.plan.outputs.matrix) }}
+    # One deploy per site at a time: overlapping mirror --delete runs race.
+    concurrency:
+      group: deploy-${{ matrix.site }}
+      cancel-in-progress: true
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: ".nvmrc"
+
+      - name: Build (sites with a package.json) and stage
+        env:
+          SITE: ${{ matrix.site }}
+        run: |
+          DIR="sites/$SITE"
+          test -d "$DIR" || { echo "No folder $DIR"; exit 1; }
+          if [ -f "$DIR/package.json" ]; then
+            (cd "$DIR" && npm ci && npm run build)
+            SRC="$DIR/out"
+          else
+            SRC="$DIR"
+          fi
+          rm -rf stage && mkdir stage
+          cp -a "$SRC"/. stage/
+          rm -rf stage/deploy stage/node_modules stage/out stage/.next
+          # deploy/ holds dotfiles (.htaccess etc.) that must end up in the web root
+          if [ -d "$DIR/deploy" ]; then cp -a "$DIR/deploy"/. stage/; fi
+          # never wipe a web root with an empty site
+          test -f stage/index.html || { echo "stage/index.html missing - refusing to deploy"; exit 1; }
+
+      # one.com's "FTP" is SFTP over SSH on port 22. Same account/secrets as
+      # biili.se, but each subdomain has its own webroots/<id>/ folder.
+      - name: Deploy to one.com over SFTP
+        env:
+          SFTP_HOST: ${{ secrets.FTP_SERVER }}
+          SFTP_USER: ${{ secrets.FTP_USERNAME }}
+          SFTP_PASS: ${{ secrets.FTP_PASSWORD }}
+          SFTP_DIR: ${{ matrix.dir }}
+        run: |
+          # biili.se's web root must never be touched from this repo
+          if [ "$SFTP_DIR" = "webroots/2367fa6d/" ]; then echo "Refusing biili.se webroot"; exit 1; fi
+          sudo apt-get update -qq && sudo apt-get install -y -qq lftp
+          lftp -e "set sftp:auto-confirm true; open -u \"$SFTP_USER\",\"$SFTP_PASS\" sftp://$SFTP_HOST:22; mirror -R --delete --verbose ./stage/ \"$SFTP_DIR\"; bye"

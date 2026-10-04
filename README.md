@@ -1,0 +1,34 @@
+# donovans.se - subdomain sites
+
+Each folder in `sites/` is one subdomain of donovans.se. Push to `main` and
+GitHub Actions builds and deploys it to one.com (SFTP, `.github/workflows/deploy.yml`).
+
+| Site | Address | Folder |
+|---|---|---|
+| Enhörningsloppet (game) | https://enhorningsspelet.donovans.se | `sites/enhorningsspelet` (Next.js, static export) |
+
+## Add a new subdomain
+
+1. **one.com:** create the subdomain (Control panel > Domains/Subdomains) and point it at its **own** folder.
+2. **Find the folder:** Actions > "List one.com webroots" > Run workflow. The log shows `webroots/<id>/` folders with contents; the new, near-empty one is yours.
+3. **Add the site:**
+   - Static HTML: create `sites/<name>/index.html` (+ other files).
+   - Next.js: create `sites/<name>/` with its own `package.json`, `next.config.ts` with `output: "export"`, and a `build` script. It is built with `npm ci && npm run build` and `out/` is deployed.
+   - Dotfiles such as `.htaccess` go in `sites/<name>/deploy/` and are copied into the web root.
+4. **Register it** in `sites.json`:
+   ```json
+   "<name>": { "host": "<name>.donovans.se", "dir": "webroots/<id>/" }
+   ```
+5. Push to `main` (or Actions > "Deploy sites to one.com" > Run workflow, optionally with the site name).
+
+A site with `"dir": null` is skipped, so you can add code before the folder is known.
+
+## Setup (once)
+
+Add these three **repository secrets** (Settings > Secrets and variables > Actions) with the same values as in the biili repo:
+`FTP_SERVER`, `FTP_USERNAME`, `FTP_PASSWORD`.
+
+## Safety
+
+- The deploy mirrors with `--delete`, so a site's web root is fully owned by this repo. Give every subdomain its own folder and never reuse a folder that holds other content.
+- The workflow refuses to deploy to biili.se's web root (`webroots/2367fa6d/`) and refuses to deploy a site without `index.html`.
