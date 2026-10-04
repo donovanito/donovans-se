@@ -215,10 +215,21 @@ function overview() {
 
 /* ---------- Portal: Start + objektvy ---------- */
 const keyCols = t => new Set([t.pkcol, ...t.fks.map(f => f.from)]);
-function lbl(t, r) {
+function lbl(t, r, d = 0) {
   const k = keyCols(t), c = t.cols.filter(x => !k.has(x.name) && r[x.name] != null);
-  const nm = c.find(x => /name|namn|title|titel/i.test(x.name)) || c[0], sb = c.find(x => x !== nm);
-  return { title: nm ? String(r[nm.name]) : `#${r[t.pkcol]}`, sub: sb ? String(r[sb.name]) : '' };
+  const nm = c.find(x => /name|namn|title|titel/i.test(x.name));
+  // kopplingstabell (t.ex. vehicle_user): titeln byggs av föräldrarnas namn
+  if (!nm && d < 2 && t.fks.length >= 2 && t.fks.some(f => t.name.startsWith(f.table + '_'))) {
+    const parts = t.fks.map(f => { const pt = meta[f.table], pr = pt && r[f.from] != null && q(`select * from "${pt.name}" where "${f.to}" = ?`, [r[f.from]])[0]; return pr ? lbl(pt, pr, d + 1).title : null; }).filter(Boolean);
+    return { title: parts.join(' - '), sub: c[0] ? String(r[c[0].name]) : '' };
+  }
+  const n = nm || c[0], sb = c.find(x => x !== n);
+  return { title: n ? String(r[n.name]) : `#${r[t.pkcol]}`, sub: sb ? String(r[sb.name]) : '' };
+}
+function fkText(t, col, v) {
+  const f = t.fks.find(x => x.from === col), pt = f && meta[f.table];
+  const pr = pt && q(`select * from "${pt.name}" where "${f.to}" = ?`, [v])[0];
+  return pr ? lbl(pt, pr).title : v;
 }
 const rlink = (t, r) => `#/r/${t.name}/${encodeURIComponent(r[t.pkcol])}`;
 const item = (t, r) => { const l = lbl(t, r); return `<a class="item" href="${rlink(t, r)}"><b>${esc(l.title)}</b><span>${esc(l.sub)}</span></a>`; };
@@ -277,7 +288,7 @@ function record(t, pk) {
     const n = q(`select count(*) n from "${k.table}" where "${k.col}" = ?`, [key])[0].n;
     const rs = q(`select * from "${k.table}" where "${k.col}" = ? limit 25`, [key]);
     const cols = ct.cols.filter(c => !c.pk && c.name !== k.col).slice(0, 6);
-    const body = rs.map(x => `<tr class="go" onclick="location.hash='${rlink(ct, x)}'"><td class="hint">#${esc(x[ct.pkcol])}</td>${cols.map(c => `<td>${x[c.name] === null ? '<span style="color:var(--mute)">-</span>' : esc(x[c.name])}</td>`).join('')}</tr>`).join('');
+    const body = rs.map(x => `<tr class="go" onclick="location.hash='${rlink(ct, x)}'"><td class="hint">#${esc(x[ct.pkcol])}</td>${cols.map(c => `<td>${x[c.name] === null ? '<span style="color:var(--mute)">-</span>' : esc(fkText(ct, c.name, x[c.name]))}</td>`).join('')}</tr>`).join('');
     return `<div class="card kid"><h2>${ct.name} <span class="hint">${n} st &middot; ${k.col} = ${esc(key)}</span></h2>` + (n ? `<div class="tw"><table><thead><tr><th></th>${cols.map(c => `<th>${esc(c.name)}</th>`).join('')}</tr></thead><tbody>${body}</tbody></table></div>${n > 25 ? `<a class="more" href="#/${ct.name}/${k.col}/${encodeURIComponent(key)}">Visa alla ${n} &rarr;</a>` : ''}` : '<div class="chips" style="color:var(--mute)">Inga rader</div>') + '</div>';
   }).join('');
 
