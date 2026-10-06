@@ -655,12 +655,34 @@ function useSound(muted: boolean) {
   useEffect(() => {
     mutedRef.current = muted;
   }, [muted]);
-  const tone = useCallback((f: number, d: number, to = f, vol = 0.06, type: OscillatorType = "sine", delay = 0) => {
+  // Browsers (desktop Safari and Firefox especially) only let audio start from a real
+  // user gesture, and the game plays its sounds from the animation loop, not from a
+  // click handler. So unlock the AudioContext on the very first tap, click or key press.
+  useEffect(() => {
+    const unlock = () => {
+      try {
+        if (!ac.current) ac.current = new AudioContext();
+        if (ac.current.state === "suspended") void ac.current.resume();
+      } catch {
+        /* audio unavailable - ignore */
+      }
+    };
+    const events = ["pointerdown", "touchend", "keydown", "click"] as const;
+    for (const e of events) window.addEventListener(e, unlock, { capture: true });
+    return () => {
+      for (const e of events) window.removeEventListener(e, unlock, { capture: true });
+    };
+  }, []);
+  const tone = useCallback((f: number, d: number, to = f, vol = 0.1, type: OscillatorType = "sine", delay = 0) => {
     if (mutedRef.current) return;
     try {
       if (!ac.current) ac.current = new AudioContext();
       const a = ac.current;
-      if (a.state === "suspended") void a.resume();
+      if (a.state !== "running") {
+        // not unlocked yet: try again, but skip this sound instead of queueing a burst
+        void a.resume();
+        return;
+      }
       const o = a.createOscillator();
       const g = a.createGain();
       const t0 = a.currentTime + delay;
@@ -677,15 +699,15 @@ function useSound(muted: boolean) {
     }
   }, []);
   return {
-    jump: () => tone(380, 0.25, 760),
+    jump: () => tone(380, 0.25, 760, 0.12),
     star: () => {
-      tone(880, 0.12, 880, 0.05);
-      tone(1320, 0.18, 1320, 0.04, "sine", 0.07);
+      tone(880, 0.12, 880, 0.1);
+      tone(1320, 0.18, 1320, 0.08, "sine", 0.07);
     },
-    heart: () => [523, 659, 784].forEach((f, i) => tone(f, 0.2, f, 0.05, "sine", i * 0.09)),
-    bump: () => tone(220, 0.25, 140, 0.07, "triangle"),
-    turbo: () => tone(300, 0.3, 600, 0.03, "sawtooth"),
-    win: () => [523, 659, 784, 1047, 1319].forEach((f, i) => tone(f, 0.35, f, 0.05, "sine", i * 0.12)),
+    heart: () => [523, 659, 784].forEach((f, i) => tone(f, 0.2, f, 0.1, "sine", i * 0.09)),
+    bump: () => tone(220, 0.25, 140, 0.14, "triangle"),
+    turbo: () => tone(300, 0.3, 600, 0.05, "sawtooth"),
+    win: () => [523, 659, 784, 1047, 1319].forEach((f, i) => tone(f, 0.35, f, 0.1, "sine", i * 0.12)),
     unlock: () => tone(1, 0.01, 1, 0.0001),
   };
 }
