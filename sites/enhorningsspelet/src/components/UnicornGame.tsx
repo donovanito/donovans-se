@@ -649,35 +649,48 @@ function drawHud(ctx: CanvasRenderingContext2D, s: State) {
 
 /* ---------- sound ---------- */
 
+/* One shared AudioContext. Safari only lets audio start from inside a real user gesture, so
+   unlockAudio() is called from clicks, taps and key presses (including the character picker). */
+let audioCtx: AudioContext | null = null;
+
+function getAudio(): AudioContext | null {
+  try {
+    if (!audioCtx) {
+      const AC = window.AudioContext ?? (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+      if (!AC) return null;
+      audioCtx = new AC();
+    }
+    return audioCtx;
+  } catch {
+    return null;
+  }
+}
+
+function unlockAudio() {
+  const a = getAudio();
+  if (!a) return;
+  if (a.state !== "running") void a.resume(); // Safari can also report "interrupted"
+  try {
+    // playing one silent buffer inside the gesture fully unlocks audio in Safari/iOS
+    const src = a.createBufferSource();
+    src.buffer = a.createBuffer(1, 1, 22050);
+    src.connect(a.destination);
+    src.start(0);
+  } catch {
+    /* ignore */
+  }
+}
+
 function useSound(muted: boolean) {
-  const ac = useRef<AudioContext | null>(null);
   const mutedRef = useRef(muted);
   useEffect(() => {
     mutedRef.current = muted;
   }, [muted]);
-  // Browsers (desktop Safari and Firefox especially) only let audio start from a real
-  // user gesture, and the game plays its sounds from the animation loop, not from a
-  // click handler. So unlock the AudioContext on the very first tap, click or key press.
-  useEffect(() => {
-    const unlock = () => {
-      try {
-        if (!ac.current) ac.current = new AudioContext();
-        if (ac.current.state === "suspended") void ac.current.resume();
-      } catch {
-        /* audio unavailable - ignore */
-      }
-    };
-    const events = ["pointerdown", "touchend", "keydown", "click"] as const;
-    for (const e of events) window.addEventListener(e, unlock, { capture: true });
-    return () => {
-      for (const e of events) window.removeEventListener(e, unlock, { capture: true });
-    };
-  }, []);
   const tone = useCallback((f: number, d: number, to = f, vol = 0.1, type: OscillatorType = "sine", delay = 0) => {
     if (mutedRef.current) return;
     try {
-      if (!ac.current) ac.current = new AudioContext();
-      const a = ac.current;
+      const a = getAudio();
+      if (!a) return;
       if (a.state !== "running") {
         // not unlocked yet: try again, but skip this sound instead of queueing a burst
         void a.resume();
@@ -708,7 +721,7 @@ function useSound(muted: boolean) {
     bump: () => tone(220, 0.25, 140, 0.14, "triangle"),
     turbo: () => tone(300, 0.3, 600, 0.05, "sawtooth"),
     win: () => [523, 659, 784, 1047, 1319].forEach((f, i) => tone(f, 0.35, f, 0.1, "sine", i * 0.12)),
-    unlock: () => tone(1, 0.01, 1, 0.0001),
+    unlock: () => unlockAudio(),
   };
 }
 
@@ -1102,6 +1115,13 @@ function Game({ char, onExit }: { char: Char; onExit: () => void }) {
 
 export default function UnicornGame() {
   const [char, setChar] = useState<Char | null>(null);
+  useEffect(() => {
+    const events = ["pointerdown", "touchend", "mousedown", "click", "keydown"] as const;
+    for (const e of events) window.addEventListener(e, unlockAudio, { capture: true });
+    return () => {
+      for (const e of events) window.removeEventListener(e, unlockAudio, { capture: true });
+    };
+  }, []);
   if (char) return <Game char={char} onExit={() => setChar(null)} />;
   return (
     <main
@@ -1120,7 +1140,10 @@ export default function UnicornGame() {
           <button
             key={c.name}
             type="button"
-            onClick={() => setChar(c)}
+            onClick={() => {
+              unlockAudio();
+              setChar(c);
+            }}
             className="rounded-[2rem] bg-white/85 border-4 border-white shadow-lg p-3 [@media(max-height:500px)]:p-1.5 active:scale-95 transition-transform"
           >
             <CharPreview c={c} />
