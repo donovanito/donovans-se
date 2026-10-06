@@ -10,3 +10,8 @@ RewriteRule ^(.*)$ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
     Header set Cache-Control "no-cache, must-revalidate"
   </FilesMatch>
 </IfModule>
+
+# the web app manifest must be served with its own type so iPhone/Android pick it up
+<IfModule mod_mime.c>
+  AddType application/manifest+json .webmanifest
+</IfModule>
