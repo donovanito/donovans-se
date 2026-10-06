@@ -25,14 +25,27 @@ type Char = {
   body: string;
   hair: string;
   shirt: string;
-  pigtails: boolean;
+  style: "pigtails" | "bob" | "short";
+  /** Visual size only (large 1, medium 0.85, small 0.7) - gameplay is identical for everyone. */
+  scale: number;
 };
 
+const LARGE = 1;
+const MEDIUM = 0.85;
+const SMALL = 0.7;
+
 const CHARS: Char[] = [
-  { name: "Hedvig", body: "#ffc2dd", hair: "#f6d365", shirt: "#b07cff", pigtails: true },
-  { name: "Amanda", body: "#dcc6ff", hair: "#8a5a3c", shirt: "#4cb5f5", pigtails: false },
-  { name: "Edith", body: "#bff0d4", hair: "#e8743b", shirt: "#ffd23f", pigtails: true },
-  { name: "Alex", body: "#c6e6ff", hair: "#4a3a32", shirt: "#ff8f5a", pigtails: false },
+  // large (grown-ups and bigger kids)
+  { name: "Alex", body: "#c6e6ff", hair: "#4a3a32", shirt: "#ff8f5a", style: "bob", scale: LARGE },
+  { name: "Amanda", body: "#dcc6ff", hair: "#8a5a3c", shirt: "#4cb5f5", style: "bob", scale: LARGE },
+  { name: "Martin", body: "#ffd9b3", hair: "#7a5230", shirt: "#3dbb9a", style: "short", scale: LARGE },
+  { name: "Sara", body: "#b8f0f0", hair: "#b5372b", shirt: "#f06292", style: "bob", scale: LARGE },
+  // medium
+  { name: "Hedvig", body: "#ffc2dd", hair: "#f6d365", shirt: "#b07cff", style: "pigtails", scale: MEDIUM },
+  { name: "Ebba", body: "#fff3b0", hair: "#6b4226", shirt: "#7bd88f", style: "bob", scale: MEDIUM },
+  // small
+  { name: "Maja", body: "#e0f5b5", hair: "#2b2b2b", shirt: "#ff6b8b", style: "pigtails", scale: SMALL },
+  { name: "Edith", body: "#bff0d4", hair: "#e8743b", shirt: "#ffd23f", style: "pigtails", scale: SMALL },
 ];
 
 /* ---------- drawing helpers ---------- */
@@ -191,13 +204,13 @@ function drawUnicorn(
   ctx.stroke();
   // hair behind
   ctx.fillStyle = c.hair;
-  if (c.pigtails) {
+  if (c.style === "pigtails") {
     const sw = Math.sin(t * 10) * 3;
     ctx.beginPath();
     ctx.arc(-20 - sw, -184 + rb, 8, 0, Math.PI * 2);
     ctx.arc(-26 - sw, -170 + rb, 7, 0, Math.PI * 2);
     ctx.fill();
-  } else {
+  } else if (c.style === "bob") {
     ctx.beginPath();
     ctx.ellipse(-12, -182 + rb, 14, 16, 0, 0, Math.PI * 2);
     ctx.fill();
@@ -685,9 +698,9 @@ function CharPreview({ c }: { c: Char }) {
     const ctx = ref.current?.getContext("2d");
     if (!ctx) return;
     ctx.clearRect(0, 0, 300, 200);
-    drawUnicorn(ctx, 135, 185, 0.4, c, false, 0.78);
+    drawUnicorn(ctx, 135, 185, 0.4, c, false, 0.78 * c.scale);
   }, [c]);
-  return <canvas ref={ref} width={300} height={200} className="w-full h-auto max-h-[28dvh] landscape:max-h-[34dvh] object-contain" aria-hidden />;
+  return <canvas ref={ref} width={300} height={200} className="w-full h-auto max-h-[15dvh] landscape:max-h-[17dvh] object-contain" aria-hidden />;
 }
 
 function HoldButton(props: {
@@ -945,7 +958,7 @@ function Game({ char, onExit }: { char: Char; onExit: () => void }) {
       // shadow
       ctx.fillStyle = "rgba(60,90,70,0.18)";
       ctx.beginPath();
-      ctx.ellipse(UX, GROUND + 8, Math.max(30, 70 - (s.uy + bridgeH(s.dist)) * 0.12), 10, 0, 0, Math.PI * 2);
+      ctx.ellipse(UX, GROUND + 8, Math.max(30 * char.scale, (70 - (s.uy + bridgeH(s.dist)) * 0.12) * char.scale), 10 * char.scale, 0, 0, Math.PI * 2);
       ctx.fill();
       // unicorn (flashes softly after a bump)
       const blink = s.invul > 0 && Math.floor(s.invul * 10) % 2 === 0;
@@ -953,7 +966,7 @@ function Game({ char, onExit }: { char: Char; onExit: () => void }) {
       ctx.save();
       ctx.translate(UX, GROUND - s.uy - bridgeH(s.dist));
       ctx.rotate(-Math.atan(bridgeSlope(s.dist)) * 0.8);
-      drawUnicorn(ctx, 0, 0, s.t, char, s.uy > 0, 1, 0.6 + s.speed / 500);
+      drawUnicorn(ctx, 0, 0, s.t, char, s.uy > 0, char.scale, 0.6 + s.speed / 500);
       ctx.restore();
       ctx.globalAlpha = 1;
       for (const p of s.particles) {
@@ -1070,26 +1083,26 @@ export default function UnicornGame() {
   if (char) return <Game char={char} onExit={() => setChar(null)} />;
   return (
     <main
-      className="fixed inset-0 overflow-auto flex flex-col items-center p-4 text-center [&>:first-child]:mt-auto [&>:last-child]:mb-auto"
+      className="fixed inset-0 overflow-auto flex flex-col items-center p-4 [@media(max-height:500px)]:p-2 text-center [&>:first-child]:mt-auto [&>:last-child]:mb-auto"
       style={{ background: "linear-gradient(180deg,#bfe6ff,#e9dcff 55%,#ffe3f0)" }}
     >
-      <div className="flex h-3 w-48 rounded-full overflow-hidden mb-3">
+      <div className="flex h-3 w-48 rounded-full overflow-hidden mb-3 [@media(max-height:500px)]:hidden">
         {RAINBOW.map((c) => (
           <span key={c} className="flex-1" style={{ background: c }} />
         ))}
       </div>
-      <h1 className="text-3xl sm:text-5xl font-extrabold text-[#5a4a8a]">Enhörningsspelet</h1>
-      <p className="text-lg sm:text-xl text-[#7a6aa8] mt-1 mb-3">Vem vill du rida med?</p>
-      <div className="grid grid-cols-2 landscape:grid-cols-4 lg:grid-cols-4 gap-3 sm:gap-4 w-full max-w-4xl">
+      <h1 className="text-3xl sm:text-5xl [@media(max-height:500px)]:text-2xl font-extrabold text-[#5a4a8a]">Enhörningsspelet</h1>
+      <p className="text-lg sm:text-xl [@media(max-height:500px)]:text-base text-[#7a6aa8] mt-1 mb-3 [@media(max-height:500px)]:mb-2">Vem vill du rida med?</p>
+      <div className="grid grid-cols-2 landscape:grid-cols-4 lg:grid-cols-4 gap-3 sm:gap-4 [@media(max-height:500px)]:gap-2 w-full max-w-4xl">
         {CHARS.map((c) => (
           <button
             key={c.name}
             type="button"
             onClick={() => setChar(c)}
-            className="rounded-[2rem] bg-white/85 border-4 border-white shadow-lg p-3 active:scale-95 transition-transform"
+            className="rounded-[2rem] bg-white/85 border-4 border-white shadow-lg p-3 [@media(max-height:500px)]:p-1.5 active:scale-95 transition-transform"
           >
             <CharPreview c={c} />
-            <span className="block text-2xl sm:text-3xl font-extrabold text-[#5a4a8a]">{c.name}</span>
+            <span className="block text-2xl sm:text-3xl [@media(max-height:500px)]:text-xl font-extrabold text-[#5a4a8a]">{c.name}</span>
           </button>
         ))}
       </div>
