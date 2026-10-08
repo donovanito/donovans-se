@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="sv">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Bli kund - AutoPlan</title>
+<meta name="description" content="Se om AutoPlan passar er vagnpark och be om kontakt från säljteamet.">
+<meta name="robots" content="noindex,nofollow">
+<meta name="theme-color" content="#00597c">
+<link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+<link rel="preload" href="assets/fonts/alegreya-sans-regular.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+<a class="skip" href="#main">Till innehållet</a>
+<div class="proto">Detta är ett <b>förslag/prototyp</b> på ny AutoPlan-webbplats, inte den officiella sajten. Ingen data skickas. <a href="granskning.html">Läs granskningen</a></div>
+<div class="util"><div class="wrap">
+  <div class="seg"><span class="sr">Jag är:</span><a href="index.html" class="on">Företagskund</a><a href="forare.html">Förare</a><a href="leverantor.html">Leverantör</a></div>
+  <div class="right"><span data-open-status><span class="dot"></span>Support 09-15 helgfria vardagar</span><a href="tel:0771220000">0771-22 00 00</a><a href="nyheter.html">Nyheter</a></div>
+</div></div>
+<header class="hdr" id="top"><div class="wrap">
+  <a class="logo" href="index.html" aria-label="AutoPlan, startsidan"><img src="assets/logo.svg" alt="AutoPlan" width="58" height="58"></a>
+  <button class="burger" type="button" aria-expanded="false" aria-controls="nav">Meny</button>
+  <nav class="nav" id="nav" aria-label="Huvudmeny"><a href="index.html">Hem</a><a href="tjanster.html">Tjänster</a><a href="forare.html">För förare</a><a href="green-fleet.html">Green Fleet</a><a href="partners.html">Partners</a><a href="hjalp.html">Hjälp och kontakt</a></nav>
+  <div class="actions"><a class="btn btn-ghost btn-sm" href="bli-kund.html">Bli kund</a><a class="btn btn-primary btn-sm" href="https://autoplan.powerappsportals.com/" rel="noopener"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 2l-9.6 9.6 M15.5 7.5l3 3L22 7l-3-3 M7.5 10.5a5.5 5.5 0 1 0 0 11 5.5 5.5 0 0 0 0-11z"/></svg> Logga in</a></div>
+</div></header>
+
+<main id="main">
+<section class="ph"><div class="wrap"><div class="crumbs"><a href="index.html">Hem</a> / Bli kund</div><h1>Bli kund hos AutoPlan</h1><p>Vår helhetslösning riktar sig till företag med vagnparker över 10 fordon. Svara på en fråga och se om vi passar ihop.</p></div></section>
+<section class="s tight" id="passar"><div class="wrap split" style="align-items:start">
+ <div>
+  <div class="card">
+   <h2 style="font-size:1.6rem">1. Hur många fordon har ni?</h2>
+   <div class="big-num" id="fleetOut">25</div>
+   <label class="sr" for="fleetRange">Antal fordon</label>
+   <input class="range" id="fleetRange" type="range" min="1" max="200" value="25">
+   <div class="small muted" style="display:flex;justify-content:space-between"><span>1</span><span>200+</span></div>
+   <div id="fleetRes" class="result good" aria-live="polite"></div>
+  </div>
+  <div class="card" style="margin-top:20px">
+   <h3>Så går det till</h3>
+   <ol style="margin:0"><li><b>Behovssamtal</b> - vi lyssnar på er vagnpark och bilpolicy.</li><li><b>Upplägg och offert</b> - finansiering, administration och tjänster.</li><li><b>Avtal och uppstart</b> - vi tar hand om förarna och kundportalen.</li></ol>
+   <p class="small muted" style="margin:12px 0 0">Föreslaget förlopp i prototypen - verifiera med Sälj.</p>
+  </div>
+ </div>
+ <div class="card" id="form">
+  <h2 style="font-size:1.6rem">2. Berätta om er</h2>
+  <form class="form" data-proto-form novalidate>
+   <label for="co">Företag</label><input id="co" type="text" required autocomplete="organization">
+   <div class="two"><div><label for="org">Organisationsnummer</label><input id="org" type="text" inputmode="numeric" placeholder="XXXXXX-XXXX" required></div>
+   <div><label for="cars">Antal fordon (ca)</label><input id="cars" type="number" min="1" required></div></div>
+   <div class="two"><div><label for="nm">Ert namn</label><input id="nm" type="text" required autocomplete="name"></div>
+   <div><label for="rl">Roll</label><select id="rl"><option>Bilansvarig / fleet manager</option><option>Ekonomichef / CFO</option><option>HR</option><option>VD / ägare</option><option>Annat</option></select></div></div>
+   <div class="two"><div><label for="em">E-post</label><input id="em" type="email" required autocomplete="email"></div>
+   <div><label for="tl">Telefon <span class="muted" style="font-weight:400">(valfritt)</span></label><input id="tl" type="tel" autocomplete="tel"></div></div>
+   <label>Vad är viktigast för er?</label>
+   <label class="check"><input type="checkbox"><span>Finansiering</span></label>
+   <label class="check"><input type="checkbox"><span>Mindre administration</span></label>
+   <label class="check"><input type="checkbox"><span>Bilförsäljning</span></label>
+   <label class="check"><input type="checkbox"><span>Elektrifiering och hållbarhet</span></label>
+   <label class="check"><input type="checkbox" required><span>Jag godkänner att AutoPlan behandlar mina personuppgifter enligt <a href="https://www.autoplan.se/om-personuppgifter/" rel="noopener">integritetspolicyn</a>.</span></label>
+   <button class="btn btn-primary" type="submit" style="margin-top:8px">Be om kontakt</button>
+   <p class="small muted" style="margin-top:12px">Prototyp: inget skickas. I skarp version routas förfrågan till säljteamets gemensamma brevlåda/CRM, inte till en enskild person.</p>
+  </form>
+  <div class="success" role="status"><h3 style="margin-bottom:.3em">Tack - vi hör av oss!</h3><p style="margin:0">Så här skulle bekräftelsen se ut: ett svar från säljteamet inom en arbetsdag.</p></div>
+ </div>
+</div></section>
+
+</main>
+<footer class="ftr"><div class="wrap">
+ <div class="cols">
+  <div><div class="chipb"><img src="assets/logo.svg" alt="AutoPlan"></div>
+   <p><b style="color:#fff">AutoPlan, Swedbank AB (publ)</b><br>105 34 Stockholm<br>Org.nr 502017-7753</p>
+   <p class="small">Fleet management för företag med fler än tio bilar. På marknaden sedan 1981.</p></div>
+  <div><h4>Utforska</h4><ul>
+   <li><a href="tjanster.html">Tjänster</a></li><li><a href="forare.html">För förare</a></li><li><a href="green-fleet.html">Green Fleet</a></li>
+   <li><a href="partners.html">Samarbetspartners</a></li><li><a href="nyheter.html">Nyheter</a></li><li><a href="bli-kund.html">Bli kund</a></li></ul></div>
+  <div><h4>Hjälp</h4><ul>
+   <li><a href="hjalp.html">Vanliga frågor</a></li><li><a href="hjalp.html#kontakt">Kontakt och öppettider</a></li><li><a href="leverantor.html">För leverantörer</a></li>
+   <li><a href="https://www.autoplan.se/om-kakor/" rel="noopener">Om kakor</a></li><li><a href="https://www.autoplan.se/om-personuppgifter/" rel="noopener">Om personuppgifter</a></li></ul></div>
+  <div><h4>Kontakt</h4><p><a href="tel:0771220000" style="font-size:1.5rem;font-weight:700;color:#fff">0771-22 00 00</a><br><span data-open-status>Helgfri vardag 09.00-15.00</span></p>
+   <p class="small">Försäkring och assistans 09-16, bilförsäljning 09-17. Ha registreringsnumret till hands.</p>
+   <a class="btn btn-light btn-sm" href="https://autoplan.powerappsportals.com/" rel="noopener">Skapa ärende i portalen</a></div>
+ </div>
+ <div class="bot"><span>&copy; AutoPlan - förslag/prototyp framtagen för granskning</span><a href="#top">Till toppen</a></div>
+</div></footer>
+<script src="assets/faq.js"></script>
+<script src="assets/app.js"></script>
+</body>
+</html>

@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="sv">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Hjälp och kontakt - AutoPlan</title>
+<meta name="description" content="Sök bland vanliga frågor, följ guiden vid skada eller kontakta AutoPlan Support.">
+<meta name="robots" content="noindex,nofollow">
+<meta name="theme-color" content="#00597c">
+<link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+<link rel="preload" href="assets/fonts/alegreya-sans-regular.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+<a class="skip" href="#main">Till innehållet</a>
+<div class="proto">Detta är ett <b>förslag/prototyp</b> på ny AutoPlan-webbplats, inte den officiella sajten. Ingen data skickas. <a href="granskning.html">Läs granskningen</a></div>
+<div class="util"><div class="wrap">
+  <div class="seg"><span class="sr">Jag är:</span><a href="index.html" class="on">Företagskund</a><a href="forare.html">Förare</a><a href="leverantor.html">Leverantör</a></div>
+  <div class="right"><span data-open-status><span class="dot"></span>Support 09-15 helgfria vardagar</span><a href="tel:0771220000">0771-22 00 00</a><a href="nyheter.html">Nyheter</a></div>
+</div></div>
+<header class="hdr" id="top"><div class="wrap">
+  <a class="logo" href="index.html" aria-label="AutoPlan, startsidan"><img src="assets/logo.svg" alt="AutoPlan" width="58" height="58"></a>
+  <button class="burger" type="button" aria-expanded="false" aria-controls="nav">Meny</button>
+  <nav class="nav" id="nav" aria-label="Huvudmeny"><a href="index.html">Hem</a><a href="tjanster.html">Tjänster</a><a href="forare.html">För förare</a><a href="green-fleet.html">Green Fleet</a><a href="partners.html">Partners</a><a href="hjalp.html" aria-current="page">Hjälp och kontakt</a></nav>
+  <div class="actions"><a class="btn btn-ghost btn-sm" href="bli-kund.html">Bli kund</a><a class="btn btn-primary btn-sm" href="https://autoplan.powerappsportals.com/" rel="noopener"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 2l-9.6 9.6 M15.5 7.5l3 3L22 7l-3-3 M7.5 10.5a5.5 5.5 0 1 0 0 11 5.5 5.5 0 0 0 0-11z"/></svg> Logga in</a></div>
+</div></header>
+
+<main id="main">
+<section class="ph"><div class="wrap"><div class="crumbs"><a href="index.html">Hem</a> / Hjälp och kontakt</div><h1>Hjälp och kontakt</h1><p>Rätt hjälp vid rätt tillfälle. Börja med att söka - de flesta frågor har ett svar här. Behöver du mer hjälp finns rätt kanal nedan.</p></div></section>
+<section class="s tight"><div class="wrap help-grid">
+ <div>
+  <form class="search light" role="search" onsubmit="return false">
+   <label class="sr" for="faqSearch">Sök bland svar</label><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 19a8 8 0 1 1 0-16 8 8 0 0 1 0 16z M21 21l-4.3-4.3"/></svg>
+   <input id="faqSearch" type="search" placeholder="Sök t.ex. skada, körjournal, utlägg, grönt kort" autocomplete="off">
+  </form>
+  <div class="facets" id="facets" aria-label="Filtrera på ämne"></div>
+  <p class="small muted" id="faqCount" aria-live="polite" style="margin:10px 0 14px"></p>
+  <div id="faqList"></div>
+ </div>
+ <aside>
+  <div class="card triage" style="margin-bottom:20px"><span class="badge teal">Guide</span><div id="triage" style="margin-top:10px"></div></div>
+  <div class="card" id="kontakt">
+   <h3>Kontakta oss</h3>
+   <p class="small" style="margin-bottom:10px"><b>Snabbast:</b> skapa ett ärende i kundportalen. Du följer hela processen och slipper köa.</p>
+   <a class="btn btn-primary" style="width:100%" href="https://autoplan.powerappsportals.com/" rel="noopener"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 2l-9.6 9.6 M15.5 7.5l3 3L22 7l-3-3 M7.5 10.5a5.5 5.5 0 1 0 0 11 5.5 5.5 0 0 0 0-11z"/></svg> Skapa ärende</a>
+   <hr style="border:0;border-top:1px solid var(--line);margin:20px 0">
+   <p style="margin-bottom:4px"><b>Vill du prata?</b></p>
+   <a class="num-big" href="tel:0771220000">0771-22 00 00</a>
+   <p class="small" data-open-status style="margin:6px 0 12px">Helgfri vardag 09.00-15.00</p>
+   <table class="hours"><tbody>
+    <tr><td>Generella frågor</td><td>09.00-15.00</td></tr>
+    <tr><td>Försäkring</td><td>09.00-16.00</td></tr>
+    <tr><td>Assistans</td><td>09.00-16.00</td></tr>
+    <tr><td>Bilförsäljning</td><td>09.00-17.00</td></tr>
+   </tbody></table>
+   <p class="small muted" style="margin-top:12px">Ha alltid registreringsnumret till hands. Frågor om bilpolicy eller vagnparksstrategi? Kontakta din Account Manager.</p>
+   <hr style="border:0;border-top:1px solid var(--line);margin:18px 0">
+   <p class="small" style="margin:0"><b>Försäkringsservice:</b> <a href="mailto:insurance@autoplan.se">insurance@autoplan.se</a><br><b>Vill du bli kund?</b> <a href="bli-kund.html">Fyll i formuläret</a></p>
+  </div>
+ </aside>
+</div></section>
+
+</main>
+<footer class="ftr"><div class="wrap">
+ <div class="cols">
+  <div><div class="chipb"><img src="assets/logo.svg" alt="AutoPlan"></div>
+   <p><b style="color:#fff">AutoPlan, Swedbank AB (publ)</b><br>105 34 Stockholm<br>Org.nr 502017-7753</p>
+   <p class="small">Fleet management för företag med fler än tio bilar. På marknaden sedan 1981.</p></div>
+  <div><h4>Utforska</h4><ul>
+   <li><a href="tjanster.html">Tjänster</a></li><li><a href="forare.html">För förare</a></li><li><a href="green-fleet.html">Green Fleet</a></li>
+   <li><a href="partners.html">Samarbetspartners</a></li><li><a href="nyheter.html">Nyheter</a></li><li><a href="bli-kund.html">Bli kund</a></li></ul></div>
+  <div><h4>Hjälp</h4><ul>
+   <li><a href="hjalp.html">Vanliga frågor</a></li><li><a href="hjalp.html#kontakt">Kontakt och öppettider</a></li><li><a href="leverantor.html">För leverantörer</a></li>
+   <li><a href="https://www.autoplan.se/om-kakor/" rel="noopener">Om kakor</a></li><li><a href="https://www.autoplan.se/om-personuppgifter/" rel="noopener">Om personuppgifter</a></li></ul></div>
+  <div><h4>Kontakt</h4><p><a href="tel:0771220000" style="font-size:1.5rem;font-weight:700;color:#fff">0771-22 00 00</a><br><span data-open-status>Helgfri vardag 09.00-15.00</span></p>
+   <p class="small">Försäkring och assistans 09-16, bilförsäljning 09-17. Ha registreringsnumret till hands.</p>
+   <a class="btn btn-light btn-sm" href="https://autoplan.powerappsportals.com/" rel="noopener">Skapa ärende i portalen</a></div>
+ </div>
+ <div class="bot"><span>&copy; AutoPlan - förslag/prototyp framtagen för granskning</span><a href="#top">Till toppen</a></div>
+</div></footer>
+<script src="assets/faq.js"></script>
+<script src="assets/app.js"></script>
+</body>
+</html>
