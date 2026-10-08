@@ -13,6 +13,9 @@ var nb=$("[data-dismiss]");
 if(nb){var nbox=nb.closest(".notice");if(store.get("fa-notice")==="1"){nbox.hidden=true}
 nb.addEventListener("click",function(){nbox.hidden=true;store.set("fa-notice","1")})}
 
+/* Checklist folds: open on desktop, closed on phones */
+$$("details.fold").forEach(function(d){d.open=window.matchMedia("(min-width:901px)").matches});
+
 /* Stockholm time helpers */
 function sthlm(){
   var p={};new Intl.DateTimeFormat("en-GB",{timeZone:"Europe/Stockholm",weekday:"short",year:"numeric",month:"numeric",day:"numeric",hour:"numeric",minute:"numeric",hour12:false}).formatToParts(new Date()).forEach(function(x){p[x.type]=x.value});
