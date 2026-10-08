@@ -275,3 +275,8 @@ table.t td:first-child{font-weight:700;color:var(--brand-ink)}
 @media (prefers-reduced-motion:reduce){*{transition:none!important;scroll-behavior:auto!important}}
 @media print{.proto,.util,.hdr,.ftr,.notice{display:none}}
 .ftr a.btn-light,.ftr a.btn-light:hover{color:var(--brand);text-decoration:none}
+.member{display:flex;gap:18px;align-items:center;background:#fff;border:1px solid var(--line);border-radius:var(--r);padding:20px;box-shadow:var(--shadow)}
+.member .av{width:96px;height:96px;border-radius:50%;flex:none;object-fit:cover;background:var(--teal-soft)}
+.member .av.ini{display:grid;place-items:center;font-size:2rem;font-weight:700;color:var(--brand);background:var(--teal-soft);border:3px solid #fff;box-shadow:0 0 0 2px var(--teal-soft)}
+.member h3{margin:0 0 2px;font-size:1.3rem}
+@media (max-width:560px){.member{flex-direction:column;text-align:center}}
