@@ -84,7 +84,7 @@ if(hs){
 var list=$("#faqList");
 if(list){
   var cats=[];FAQ.forEach(function(f){if(cats.indexOf(f.cat)<0)cats.push(f.cat)});
-  var cur="Alla",input=$("#faqSearch"),count=$("#faqCount"),facets=$("#facets");
+  var expanded=false,cur="Alla",input=$("#faqSearch"),count=$("#faqCount"),facets=$("#facets");
   facets.innerHTML=["Alla"].concat(cats).map(function(c){return '<button type="button" class="chip'+(c==="Alla"?" on":"")+'" data-c="'+esc(c)+'">'+esc(c)+'</button>'}).join("");
   facets.addEventListener("click",function(e){var b=e.target.closest("button");if(!b)return;cur=b.getAttribute("data-c");$$("button",facets).forEach(function(x){x.classList.toggle("on",x===b)});draw()});
   function hl(txt,terms){var out=esc(txt);terms.forEach(function(t){out=out.replace(new RegExp("("+t.replace(/[.*+?^${}()|[\]\\]/g,"\\$&")+")","ig"),"<mark>$1</mark>")});return out}
@@ -93,7 +93,10 @@ if(list){
     var res=terms.length?search(v):FAQ.slice();
     if(cur!=="Alla")res=res.filter(function(f){return f.cat===cur});
     count.textContent=res.length+(res.length===1?" svar":" svar")+(v?' för "'+v+'"':"");
+    var total=res.length,limit=!v&&cur==="Alla"&&!expanded&&window.matchMedia("(max-width:900px)").matches?8:0;
+    if(limit&&res.length>limit)res=res.slice(0,limit);else limit=0;
     list.innerHTML=res.length?res.map(function(f){return '<details class="q" id="'+f.id+'"><summary><span class="cat">'+esc(f.cat)+'</span>'+hl(f.q,terms)+'</summary><div class="a">'+f.a+'<div class="fb">Hjälpte svaret? <button type="button" data-fb="1">Ja</button><button type="button" data-fb="0">Nej</button></div></div></details>'}).join(""):'<div class="card"><h3>Hittade inget svar</h3><p>Prova ett annat sökord, eller <a href="#kontakt">kontakta oss</a>. Beskriv gärna med registreringsnummer till hands.</p></div>';
+    if(limit){var mb=document.createElement("button");mb.type="button";mb.className="btn btn-ghost more";mb.textContent="Visa alla "+total+" svar";mb.addEventListener("click",function(){expanded=true;draw()});list.appendChild(mb)}
     if(res.length===1)list.querySelector("details").open=true;
   }
   input.addEventListener("input",draw);
@@ -131,6 +134,13 @@ $$("[data-checklist]").forEach(function(box){
   boxes.forEach(function(c,i){c.checked=!!saved[i];c.addEventListener("change",function(){var o={};boxes.forEach(function(x,j){if(x.checked)o[j]=1});store.set(key,JSON.stringify(o));upd()})});
   function upd(){var n=boxes.filter(function(x){return x.checked}).length;if(bar)bar.style.width=(n/boxes.length*100)+"%";if(lab)lab.textContent=n+" av "+boxes.length+" klara"+(n===boxes.length?" - redo att lämna tillbaka":"")}
   upd();
+});
+
+/* Tables: stack as cards on small screens */
+$$("table.t").forEach(function(t){
+  var heads=$$("thead th",t).map(function(h){return h.textContent.trim()});
+  if(!heads.length)return;t.classList.add("stack");
+  $$("tbody tr",t).forEach(function(tr){$$("td",tr).forEach(function(td,i){td.setAttribute("data-label",heads[i]||"")})});
 });
 
 /* Copy */
