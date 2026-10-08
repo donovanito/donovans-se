@@ -346,3 +346,42 @@ table.t.stack td::before{content:attr(data-label)}
 }
 .help-grid>*{min-width:0}
 @media (max-width:1100px){.help-grid{grid-template-columns:minmax(0,1fr)}}
+
+/* ---- Mobile v2: stable header, audience switch, less clutter ---- */
+.hbar{display:contents}
+.nav-seg{display:none}
+.notice .sh{display:none}
+details.fold>summary{cursor:pointer;font-weight:700;color:var(--brand);list-style:none;padding:2px 0 10px;font-size:1.1rem}
+details.fold>summary::-webkit-details-marker{display:none}
+details.fold>summary:after{content:"+";float:right;font-size:1.5rem;line-height:1}
+details.fold[open]>summary:after{content:"\2212"}
+details.fold:not([open])>summary{padding-bottom:2px}
+@media (max-width:900px){
+  .hdr .wrap{min-height:0;gap:0;padding-top:0;padding-bottom:0}
+  .hbar{display:flex;align-items:center;gap:12px;width:100%;min-height:68px}
+  .hdr.open{max-height:100dvh;overflow-y:auto}
+  .hdr.open .nav-seg{display:flex;gap:4px;background:#eaf3f7;border-radius:12px;padding:4px;margin:2px 0 8px}
+  .nav .nav-seg a{flex:1;text-align:center;padding:10px 4px;border-radius:9px;font-weight:700;font-size:1rem}
+  .nav .nav-seg a.on{background:#fff;box-shadow:var(--shadow);color:var(--brand)}
+}
+@media (max-width:700px){
+  .hide-m,.mock{display:none!important}
+  .util .wrap{padding-top:6px;padding-bottom:6px}
+  .util .seg{display:flex!important;width:100%;gap:4px;background:rgba(255,255,255,.08);border-radius:99px;padding:3px}
+  .util .seg a{flex:1;text-align:center;padding:7px 4px;font-size:1rem;font-weight:500}
+  .util .seg a.on{background:#fff;color:var(--brand-ink);font-weight:700}
+  .util .right{display:none}
+  .stats{display:flex;overflow-x:auto;scroll-snap-type:x mandatory;scrollbar-width:none}
+  .stats::-webkit-scrollbar{display:none}
+  .stat{flex:0 0 64%;scroll-snap-align:start;border-bottom:0;border-right:1px solid var(--line)}
+  .lifecycle{grid-template-columns:1fr 1fr;gap:18px 14px}
+  .lc{padding:0}.lc p{display:none}.lc h3{font-size:1.15rem;margin-bottom:.2em}
+  .news-teaser a.n:nth-child(n+3){display:none}
+  .finder{margin-top:-70px}
+}
+@media (max-width:560px){
+  .notice .l{display:none}.notice .sh{display:inline}
+  .notice .badge{display:none}
+  .notice .wrap{align-items:center}
+}
+@media (max-width:700px){.home .util{display:none}}
