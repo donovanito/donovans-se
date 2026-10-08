@@ -385,3 +385,24 @@ details.fold:not([open])>summary{padding-bottom:2px}
   .notice .wrap{align-items:center}
 }
 @media (max-width:700px){.home .util{display:none}}
+
+/* ---- Mobile v3: persistent audience switch in header, spacing fixes ---- */
+ol{margin:0 0 1em;padding-left:1.3em}
+.hseg{display:none}
+.finder{scroll-margin-top:130px}
+.tri-actions{display:flex;gap:16px;align-items:center;flex-wrap:wrap;margin-top:18px}
+.triage .res{margin-bottom:0}
+.triage .res ol{margin:.5em 0 1em}
+.triage .res p{margin-top:.4em}
+.hdr{transition:transform .22s ease}
+@media (max-width:900px){
+  .hdr.hide{transform:translateY(-100%)}
+  .hdr:focus-within{transform:none}
+  .util{display:none}
+  .hseg{display:flex;gap:4px;width:100%;background:#eaf3f7;border-radius:12px;padding:3px;margin:0 0 10px}
+  .hseg a{flex:1;text-align:center;padding:9px 4px;border-radius:9px;font-weight:700;font-size:1rem;text-decoration:none;color:var(--brand-ink)}
+  .hseg a.on{background:#fff;color:var(--brand);box-shadow:var(--shadow)}
+  .hbar{min-height:60px}
+  .home .tabs{display:none}
+  .finder .panel{padding-top:20px}
+}

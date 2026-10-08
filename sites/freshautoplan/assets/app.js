@@ -51,6 +51,29 @@ $$("[role=tablist]").forEach(function(list){
     t.addEventListener("keydown",function(e){var n=e.key==="ArrowRight"?i+1:e.key==="ArrowLeft"?i-1:null;if(n===null)return;n=(n+tabs.length)%tabs.length;tabs[n].focus();sel(tabs[n])})});
 });
 
+/* Audience switch on the start page: header buttons drive the task tabs */
+if(document.body.classList.contains("home")){
+  var keys=["forare","bilansvarig","leverantor"],titles=["som förare","som bilansvarig","som leverantör"],tabBtns=$$("[role=tab]"),hseg=$$(".hseg a"),ft=$("#finderTitle");
+  function mark(i){hseg.forEach(function(a,j){a.classList.toggle("on",j===i)});if(ft)ft.textContent="Vad vill du göra "+titles[i]+"?"}
+  tabBtns.forEach(function(t,i){t.addEventListener("click",function(){mark(i)})});
+  hseg.forEach(function(a,i){a.addEventListener("click",function(e){e.preventDefault();if(tabBtns[i])tabBtns[i].click();var f=$(".finder");if(f)f.scrollIntoView({behavior:"smooth",block:"start"});history.replaceState(null,"","#"+keys[i])})});
+  var h=location.hash.slice(1),hi=keys.indexOf(h);
+  if(hi>-1){if(tabBtns[hi])tabBtns[hi].click();setTimeout(function(){var f=$(".finder");if(f)f.scrollIntoView({block:"start"})},60)}else{mark(0)}
+}
+
+/* Header: slide away when scrolling down, back on scroll up (no layout shift) */
+(function(){
+  var hd=$(".hdr");if(!hd)return;var last=window.pageYOffset,tick=false;
+  window.addEventListener("scroll",function(){
+    if(tick)return;tick=true;
+    window.requestAnimationFrame(function(){
+      var y=window.pageYOffset,small=window.matchMedia("(max-width:900px)").matches;
+      if(!small||hd.classList.contains("open")||y<120||y<last-4){hd.classList.remove("hide")}
+      else if(y>last+6){hd.classList.add("hide")}
+      last=y;tick=false});
+  },{passive:true});
+})();
+
 /* Knowledge search */
 var FAQ=window.FAQ||[];
 function score(f,terms){
@@ -124,7 +147,7 @@ if(tri){
   function home(){tri.innerHTML='<h3>Vad gäller det?</h3>'+T.map(function(o,i){return '<button type="button" class="opt" data-i="'+i+'">'+esc(o.l)+'</button>'}).join("")}
   tri.addEventListener("click",function(e){
     var b=e.target.closest("[data-i]");
-    if(b){var o=T[+b.getAttribute("data-i")];tri.innerHTML='<div class="res"><h4>'+esc(o.t)+'</h4><ol>'+o.s.map(function(x){return "<li>"+x+"</li>"}).join("")+'</ol><p><a class="btn btn-primary btn-sm" href="https://autoplan.powerappsportals.com/" rel="noopener">Skapa ärende i portalen</a></p></div><p><button type="button" class="btn btn-ghost btn-sm" data-back="1">Tillbaka</button> '+(o.k?'<a class="small" href="hjalp.html?q='+encodeURIComponent(o.k)+'">Visa relaterade svar</a>':"")+'</p>';return}
+    if(b){var o=T[+b.getAttribute("data-i")];tri.innerHTML='<div class="res"><h4>'+esc(o.t)+'</h4><ol>'+o.s.map(function(x){return "<li>"+x+"</li>"}).join("")+'</ol><p><a class="btn btn-primary btn-sm" href="https://autoplan.powerappsportals.com/" rel="noopener">Skapa ärende i portalen</a></p></div><div class="tri-actions"><button type="button" class="btn btn-ghost btn-sm" data-back="1">Tillbaka</button>'+(o.k?'<a class="small" href="hjalp.html?q='+encodeURIComponent(o.k)+'">Visa relaterade svar</a>':"")+'</div>';return}
     if(e.target.closest("[data-back]"))home();
   });
   home();
