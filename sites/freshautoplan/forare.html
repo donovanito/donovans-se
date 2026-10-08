@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="sv">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>För förare - AutoPlan</title>
+<meta name="description" content="Körjournal, skada, utlägg, återlämning och utlandskörning - allt för dig som förare samlat.">
+<meta name="robots" content="noindex,nofollow">
+<meta name="theme-color" content="#00597c">
+<link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+<link rel="preload" href="assets/fonts/alegreya-sans-regular.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+<a class="skip" href="#main">Till innehållet</a>
+<div class="proto">Detta är ett <b>förslag/prototyp</b> på ny AutoPlan-webbplats, inte den officiella sajten. Ingen data skickas. <a href="granskning.html">Läs granskningen</a></div>
+<div class="util"><div class="wrap">
+  <div class="seg"><span class="sr">Jag är:</span><a href="index.html">Företagskund</a><a href="forare.html" class="on">Förare</a><a href="leverantor.html">Leverantör</a></div>
+  <div class="right"><span data-open-status><span class="dot"></span>Support 09-15 helgfria vardagar</span><a href="tel:0771220000">0771-22 00 00</a><a href="nyheter.html">Nyheter</a></div>
+</div></div>
+<header class="hdr" id="top"><div class="wrap">
+  <a class="logo" href="index.html" aria-label="AutoPlan, startsidan"><img src="assets/logo.svg" alt="AutoPlan" width="58" height="58"></a>
+  <button class="burger" type="button" aria-expanded="false" aria-controls="nav">Meny</button>
+  <nav class="nav" id="nav" aria-label="Huvudmeny"><a href="index.html">Hem</a><a href="tjanster.html">Tjänster</a><a href="forare.html" aria-current="page">För förare</a><a href="green-fleet.html">Green Fleet</a><a href="partners.html">Partners</a><a href="hjalp.html">Hjälp och kontakt</a></nav>
+  <div class="actions"><a class="btn btn-ghost btn-sm" href="bli-kund.html">Bli kund</a><a class="btn btn-primary btn-sm" href="https://autoplan.powerappsportals.com/" rel="noopener"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 2l-9.6 9.6 M15.5 7.5l3 3L22 7l-3-3 M7.5 10.5a5.5 5.5 0 1 0 0 11 5.5 5.5 0 0 0 0-11z"/></svg> Logga in</a></div>
+</div></header>
+
+<main id="main">
+<section class="ph"><div class="wrap"><div class="crumbs"><a href="index.html">Hem</a> / För förare</div><h1>För förare</h1><p>Allt du behöver som förare, sorterat efter vad du ska göra. Skippa jargongen - hitta rätt direkt.</p></div></section>
+<section class="s tight"><div class="wrap">
+ <div class="grid g3">
+  <div class="card" id="korjournal">
+   <span class="badge">Varje månad</span><h3 style="margin-top:10px">Körjournal och mätarställning</h3>
+   <p style="font-size:1.35rem" data-korjournal>Senast den 4:e varje månad</p>
+   <p class="small muted">Rapportera i kundportalen med Mobilt BankID. Du behöver tre värden i km:</p>
+   <ol class="small" style="margin-bottom:14px"><li>Ingående mätarställning</li><li>Totalt antal tjänstekilometer</li><li>Utgående mätarställning</li></ol>
+   <p class="small muted">Din privata andel räknas ut automatiskt. Bara mätarställning? Ange den i mil.</p>
+   <a class="btn btn-primary btn-sm" href="https://autoplan.powerappsportals.com/" rel="noopener">Rapportera nu</a>
+  </div>
+  <div class="card triage" id="triage-wrap">
+   <span class="badge bad">Akut</span>
+   <div id="triage" style="margin-top:10px"></div>
+  </div>
+  <div class="card">
+   <span class="badge teal">Nummer att spara</span>
+   <ul style="list-style:none;padding:0;margin:12px 0 0">
+    <li style="padding:7px 0;border-bottom:1px solid var(--line)"><b>AutoPlan Support</b><br><a class="num-big" style="font-size:1.4rem" href="tel:0771220000">0771-22 00 00</a><span class="small muted">Vardagar 09-15 (försäkring 09-16)</span></li>
+    <li style="padding:7px 0;border-bottom:1px solid var(--line)"><b>Assistans (Folksam)</b><br><a href="tel:020450000">020-45 00 00</a> <span class="small muted">vardagar 09-16</span></li>
+    <li style="padding:7px 0;border-bottom:1px solid var(--line)"><b>Carglass utomlands</b><br><a href="tel:+46771575575">+46 771 575 575</a></li>
+    <li style="padding:7px 0"><b>SOS International (olycka utomlands)</b><br><a href="tel:+4570105050">+45 7010 5050</a></li>
+   </ul>
+  </div>
+ </div>
+</div></section>
+
+<section class="s white"><div class="wrap">
+ <div class="sec-h"><span class="eyebrow">Livet med bilen</span><h2>Så gör du - steg för steg</h2></div>
+ <div class="tiles">
+  <a class="tile" href="hjalp.html#bestalla-bil"><span class="ic"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 16l1.5-5.5A2 2 0 0 1 8.4 9h7.2a2 2 0 0 1 1.9 1.5L19 16 M3 16h18v3H3z M7 19v2 M17 19v2"/></svg></span><b>Beställa bil</b><span class="d">Offert, kalkyl och beställning.</span></a><a class="tile" href="hjalp.html#formansvarde"><span class="ic"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20V10 M10 20V4 M16 20v-8 M22 20H2"/></svg></span><b>Förmånsvärde</b><span class="d">Beräkning, 3000-milsregel, uttag i månadens början.</span></a><a class="tile" href="hjalp.html#service"><span class="ic"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14.7 6.3a4 4 0 0 0-5.4 5.1L3 17.7 6.3 21l6.3-6.3a4 4 0 0 0 5.1-5.4l-2.5 2.5-2.5-.5-.5-2.5z"/></svg></span><b>Service och reparation</b><span class="d">Verkstad fakturerar AutoPlan.</span></a><a class="tile" href="hjalp.html#hjul"><span class="ic"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20z M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6z"/></svg></span><b>Hjul och däck</b><span class="d">Vinterdäck, däckpartners och förvaring.</span></a><a class="tile" href="hjalp.html#besiktning"><span class="ic"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 5h18v16H3z M3 10h18 M8 3v4 M16 3v4"/></svg></span><b>Besiktning</b><span class="d">Kallelse och rekvisition ca en månad innan.</span></a><a class="tile" href="hjalp.html#drivmedelskort"><span class="ic"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18v12H3z M3 10h18 M7 15h4"/></svg></span><b>Drivmedel och laddning</b><span class="d">Kort, brickor och spärr vid förlust.</span></a><a class="tile" href="hjalp.html#utlagg"><span class="ic"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 2h12v20l-3-2-3 2-3-2-3 2z M9 7h6 M9 11h6"/></svg></span><b>Kostnader och utlägg</b><span class="d">Förarredovisning och ersättning.</span></a><a class="tile" href="hjalp.html#pbot"><span class="ic"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20.6 13.4l-7.2 7.2a2 2 0 0 1-2.8 0L3 13V3h10l7.6 7.6a2 2 0 0 1 0 2.8z M7.5 7.5h.01"/></svg></span><b>Parkeringsbot</b><span class="d">Betala i tid - annars 250 kr extra.</span></a>
+ </div>
+</div></section>
+
+<section class="s" id="aterlamning"><div class="wrap split" style="align-items:start">
+ <div>
+  <span class="eyebrow">Återlämning</span><h2>Lämna tillbaka bilen utan överraskningar</h2>
+  <p>Lämna ifrån dig gamla bilen innan eller i samband med att du hämtar din nya, så att du inte belastas med två förmånsvärden. Bocka av checklistan - den sparas i din webbläsare.</p>
+  <div class="callout"><b>Gör du inte detta?</b> Du kan fortsätta debiteras för laddning och tjänster, nästa användare kan få åtkomst till dina uppgifter, och slutbudet på bilen kan bli lägre. Du som förare ansvarar för kostnader som uppstår.</div>
+ </div>
+ <div class="card">
+  <div class="small muted" data-cl-label>0 av 11 klara</div><div class="progress"><i></i></div>
+  <ul class="cl" data-checklist="aterlamning"><li><label><input type="checkbox"><span>Ta bort fordonet från användarkonton och tillhörande appar</span></label></li><li><label><input type="checkbox"><span>Avsluta kopplingar mellan fordonet och mobilappar eller digitala tjänster</span></label></li><li><label><input type="checkbox"><span>Ta bort digitala nycklar, användarprofiler och behöriga användare</span></label></li><li><label><input type="checkbox"><span>Radera sparade betalmedel så inga framtida debiteringar sker</span></label></li><li><label><input type="checkbox"><span>Logga ut från alla tjänster kopplade till fordonet</span></label></li><li><label><input type="checkbox"><span>Radera sparade adresser, favoriter och personlig information</span></label></li><li><label><input type="checkbox"><span>Fabriksåterställ fordonet</span></label></li><li><label><input type="checkbox"><span>Lägg sommar- eller vinterhjul i bagaget</span></label></li><li><label><input type="checkbox"><span>Sätt ihop alla nycklar på en nyckelknippa</span></label></li><li><label><input type="checkbox"><span>Lägg insynsskydd, servicebok, instruktionsbok och låsbultar i bilen</span></label></li><li><label><input type="checkbox"><span>Lägg laddkablar synligt i bagageutrymmet</span></label></li></ul>
+ </div>
+</div></section>
+
+<section class="s white" id="utland"><div class="wrap split" style="align-items:start">
+ <div><span class="eyebrow">Utlandskörning</span><h2>Ska du köra utomlands?</h2>
+  <p>Kontrollera först med din arbetsgivare att du får köra tjänstebilen utanför Sverige. Se till att ha god framförhållning - grönt kort måste hinna komma före avresa.</p>
+  <p class="small muted">Glasskada utomlands: Carglass hjälper i många länder och självrisken kommer med på fakturan hemma. Olycka: ring SOS International.</p></div>
+ <div class="card"><div class="small muted" data-cl-label>0 av 6 klara</div><div class="progress"><i></i></div><ul class="cl" data-checklist="utland"><li><label><input type="checkbox"><span>Fullmakt underskriven av närmaste chef</span></label></li><li><label><input type="checkbox"><span>Registreringsbevis del 1 (blå) i bilen</span></label></li><li><label><input type="checkbox"><span>Internationellt körkort (utanför EES)</span></label></li><li><label><input type="checkbox"><span>Grönt kort om landet kräver det - beställ i god tid</span></label></li><li><label><input type="checkbox"><span>Miljödekal i framrutan för storstadsområden</span></label></li><li><label><input type="checkbox"><span>Spara nödnummer: SOS International +45 7010 5050</span></label></li></ul></div>
+</div></section>
+
+<section class="s"><div class="wrap"><div class="cta-band"><div><h2>Hittade du inte svaret?</h2><p>Sök bland alla svar eller skapa ett ärende i kundportalen - då kan du följa hela processen.</p></div><div class="btns"><a class="btn btn-sun" href="hjalp.html">Sök bland svar</a><a class="btn btn-outline-light" href="https://autoplan.powerappsportals.com/" rel="noopener">Skapa ärende</a></div></div></div></section>
+
+</main>
+<footer class="ftr"><div class="wrap">
+ <div class="cols">
+  <div><div class="chipb"><img src="assets/logo.svg" alt="AutoPlan"></div>
+   <p><b style="color:#fff">AutoPlan, Swedbank AB (publ)</b><br>105 34 Stockholm<br>Org.nr 502017-7753</p>
+   <p class="small">Fleet management för företag med fler än tio bilar. På marknaden sedan 1981.</p></div>
+  <div><h4>Utforska</h4><ul>
+   <li><a href="tjanster.html">Tjänster</a></li><li><a href="forare.html">För förare</a></li><li><a href="green-fleet.html">Green Fleet</a></li>
+   <li><a href="partners.html">Samarbetspartners</a></li><li><a href="nyheter.html">Nyheter</a></li><li><a href="bli-kund.html">Bli kund</a></li></ul></div>
+  <div><h4>Hjälp</h4><ul>
+   <li><a href="hjalp.html">Vanliga frågor</a></li><li><a href="hjalp.html#kontakt">Kontakt och öppettider</a></li><li><a href="leverantor.html">För leverantörer</a></li>
+   <li><a href="https://www.autoplan.se/om-kakor/" rel="noopener">Om kakor</a></li><li><a href="https://www.autoplan.se/om-personuppgifter/" rel="noopener">Om personuppgifter</a></li></ul></div>
+  <div><h4>Kontakt</h4><p><a href="tel:0771220000" style="font-size:1.5rem;font-weight:700;color:#fff">0771-22 00 00</a><br><span data-open-status>Helgfri vardag 09.00-15.00</span></p>
+   <p class="small">Försäkring och assistans 09-16, bilförsäljning 09-17. Ha registreringsnumret till hands.</p>
+   <a class="btn btn-light btn-sm" href="https://autoplan.powerappsportals.com/" rel="noopener">Skapa ärende i portalen</a></div>
+ </div>
+ <div class="bot"><span>&copy; AutoPlan - förslag/prototyp framtagen för granskning</span><a href="#top">Till toppen</a></div>
+</div></footer>
+<script src="assets/faq.js"></script>
+<script src="assets/app.js"></script>
+</body>
+</html>

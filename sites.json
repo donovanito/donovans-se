@@ -10,5 +10,9 @@
   "tablez": {
     "host": "tablez.donovans.se",
     "dir": "webroots/ffb84257/"
+  },
+  "freshautoplan": {
+    "host": "freshautoplan.donovans.se",
+    "dir": "webroots/5547626a/"
   }
 }
