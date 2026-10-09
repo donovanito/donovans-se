@@ -2,13 +2,7 @@ RewriteEngine On
 RewriteCond %{HTTPS} off
 RewriteRule ^(.*)$ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
 
-# Password gate (HTTP Basic, user "autoplan"). Checked in mod_rewrite so no .htpasswd path is needed.
-RewriteCond %{HTTP:Authorization} !^Basic\ YXV0b3BsYW46a3VuZGNlbnRyaXNr$
-RewriteRule ^ - [R=401,L,E=APNEEDAUTH:1]
-ErrorDocument 401 "Password required"
-
 <IfModule mod_headers.c>
-  Header always set WWW-Authenticate "Basic realm=\"AutoPlan - forslag\", charset=\"UTF-8\"" "expr=%{REQUEST_STATUS} == 401"
   Header set X-Robots-Tag "noindex, nofollow"
   <FilesMatch "\.html$">
     Header set Cache-Control "no-cache, must-revalidate"
