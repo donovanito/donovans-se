@@ -1,0 +1,11 @@
+{
+  "name": "gamma-src",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "esbuild src/main.js --bundle --minify --format=iife --target=es2020,safari15 --outfile=../../sites/gamma/game.js",
+    "dev": "esbuild src/main.js --bundle --sourcemap --format=iife --target=es2020,safari15 --outfile=../../sites/gamma/game.js --watch"
+  },
+  "dependencies": { "three": "0.170.0" },
+  "devDependencies": { "esbuild": "0.24.0" }
+}
