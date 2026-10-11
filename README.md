@@ -8,6 +8,7 @@ GitHub Actions builds and deploys it to one.com (SFTP, `.github/workflows/deploy
 | Enhörningsspelet (game) | https://enhorningsspelet.donovans.se | `sites/enhorningsspelet` (Next.js, static export) |
 | Portfolio | https://sites.donovans.se | `sites/sites` (static HTML, lives in `webroots/www/sites/`) |
 | AutoPlan - förslag på ny webbplats (prototyp) | https://freshautoplan.donovans.se | `sites/freshautoplan` (static HTML, noindex) |
+| Planetspelet (game) | https://planetspelet.donovans.se | `sites/planetspelet` (static HTML/JS, no build) |
 
 ## Add a new subdomain
 

@@ -14,5 +14,9 @@
   "freshautoplan": {
     "host": "freshautoplan.donovans.se",
     "dir": "webroots/5547626a/"
+  },
+  "planetspelet": {
+    "host": "planetspelet.donovans.se",
+    "dir": "webroots/0e08f815/"
   }
 }
