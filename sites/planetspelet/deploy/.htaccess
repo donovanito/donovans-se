@@ -1,0 +1,16 @@
+RewriteEngine On
+RewriteCond %{HTTPS} off
+RewriteRule ^(.*)$ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
+
+# Always revalidate the HTML/JS/CSS so updates reach everyone (iPad home-screen icons,
+# Safari) right away.
+<IfModule mod_headers.c>
+  <FilesMatch "\.(html|js|css)$">
+    Header set Cache-Control "no-cache, must-revalidate"
+  </FilesMatch>
+</IfModule>
+
+# the web app manifest must be served with its own type so iPhone/Android pick it up
+<IfModule mod_mime.c>
+  AddType application/manifest+json .webmanifest
+</IfModule>

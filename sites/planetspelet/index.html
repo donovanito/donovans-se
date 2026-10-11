@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="sv">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<title>Planetspelet</title>
+<meta name="description" content="Hoppa mellan planeter och träd och hitta Glassplaneten!">
+<meta name="robots" content="noindex">
+<meta name="theme-color" content="#b9a2ff">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Planetspelet">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<canvas id="c" aria-label="Planetspelet"></canvas>
+
+<!-- HUD (visas medan man spelar) -->
+<div id="hud" hidden>
+  <div class="chip" id="who"></div>
+  <div class="chip" id="score"><span id="scoreIcon"></span><b id="count">0</b></div>
+  <div class="spacer"></div>
+  <button class="round" id="mute" aria-label="Ljud av/på"></button>
+  <button class="round" id="home" aria-label="Till startsidan"></button>
+</div>
+<div id="kbdHint" hidden>Pilar eller A/D = gå &nbsp;·&nbsp; Mellanslag = hoppa (två gånger i luften!) &nbsp;·&nbsp; Shift = spring</div>
+
+<!-- Touchknappar -->
+<div id="touch" hidden>
+  <div id="dpad">
+    <div class="btn arrow" data-dir="left"><svg viewBox="0 0 24 24"><path d="M15 4 L6 12 L15 20" /></svg></div>
+    <div class="btn arrow" data-dir="right"><svg viewBox="0 0 24 24"><path d="M9 4 L18 12 L9 20" /></svg></div>
+  </div>
+  <div id="actions">
+    <div class="btn run" id="runBtn"><svg viewBox="0 0 24 24"><path d="M3 5 L11 12 L3 19 M12 5 L20 12 L12 19" /></svg><span>SPRING</span></div>
+    <div class="btn jump" id="jumpBtn"><svg viewBox="0 0 24 24"><path d="M4 15 L12 6 L20 15" /></svg><span>HOPPA</span></div>
+  </div>
+</div>
+
+<!-- Startskärm -->
+<div id="start" class="screen">
+  <div class="panel">
+    <h1>Planetspelet</h1>
+    <p class="sub">Hoppa mellan planeter och träd - hitta Glassplaneten!</p>
+
+    <div class="row names" id="names" role="group" aria-label="Vem spelar?">
+      <button class="pill" data-name="Hedvig">Hedvig</button>
+      <button class="pill" data-name="Elsie">Elsie</button>
+      <button class="pill" data-name="*" id="otherName">Någon annan</button>
+      <input id="nameInput" type="text" maxlength="12" placeholder="Skriv namn" autocomplete="off" autocapitalize="words" hidden>
+    </div>
+
+    <div class="row animals" id="animals" role="group" aria-label="Välj ditt djur"></div>
+
+    <button id="play" class="play" disabled>
+      <svg viewBox="0 0 24 24"><path d="M7 4 L20 12 L7 20 Z" /></svg>
+      <span id="playLabel">Välj ett djur!</span>
+    </button>
+  </div>
+</div>
+
+<!-- Målskärm -->
+<div id="win" class="screen" hidden>
+  <div class="panel">
+    <h1 id="winTitle">Grattis!</h1>
+    <p class="sub">Du hittade Glassplaneten!</p>
+    <p class="big"><span id="winIcon"></span> <b id="winCount">0</b></p>
+    <div class="row">
+      <button class="pill" id="keepGoing">Fortsätt leka</button>
+      <button class="pill pink" id="again">Spela igen</button>
+      <button class="pill" id="otherAnimal">Byt djur</button>
+    </div>
+  </div>
+</div>
+
+<script src="game.js"></script>
+</body>
+</html>
