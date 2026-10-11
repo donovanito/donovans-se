@@ -48,3 +48,6 @@ sites/*/out/
 sites/*/node_modules/
 sites/*/.next/
 stage/
+
+# per-game source build deps
+games-src/*/node_modules/

@@ -9,6 +9,7 @@ GitHub Actions builds and deploys it to one.com (SFTP, `.github/workflows/deploy
 | Portfolio | https://sites.donovans.se | `sites/sites` (static HTML, lives in `webroots/www/sites/`) |
 | AutoPlan - förslag på ny webbplats (prototyp) | https://freshautoplan.donovans.se | `sites/freshautoplan` (static HTML, noindex) |
 | Planetspelet (game) | https://planetspelet.donovans.se | `sites/planetspelet` (static HTML/JS, no build) |
+| Gamma Station (FPS game) | https://gamma.donovans.se | `sites/gamma` (static, bundled `game.js`; source in `games-src/gamma`, rebuild with `npm ci && npm run build` there and commit) |
 
 ## Add a new subdomain
 

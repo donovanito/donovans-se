@@ -18,5 +18,9 @@
   "planetspelet": {
     "host": "planetspelet.donovans.se",
     "dir": "webroots/0e08f815/"
+  },
+  "gamma": {
+    "host": "gamma.donovans.se",
+    "dir": "webroots/7d8f3458/"
   }
 }
