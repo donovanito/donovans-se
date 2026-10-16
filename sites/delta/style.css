@@ -59,6 +59,7 @@ button { font: inherit; color: inherit; cursor: pointer; }
 .chip.speed b { font-size: clamp(18px, 6vmin, 30px); font-variant-numeric: tabular-nums; min-width: 2.4ch; text-align: right; }
 .chip.speed small { opacity: 0.6; font-size: 11px; letter-spacing: 0.1em; }
 .chip.mode.ceil { border-color: rgba(255, 59, 74, 0.7); color: #ff9aa2; }
+.chip.stunt { border-color: rgba(255, 214, 90, 0.8); color: #ffe39a; }
 .chip.fly { border-color: rgba(255, 255, 255, 0.8); color: #fff; animation: pulse 0.7s infinite alternate; }
 @keyframes pulse { from { opacity: 0.55; } to { opacity: 1; } }
 
@@ -114,6 +115,8 @@ button.round svg { width: 55%; height: 55%; fill: none; stroke: var(--ink); stro
 .btn.fly { position: absolute; right: var(--safe-r); bottom: var(--safe-b); width: calc(var(--b) * 1.3); height: calc(var(--b) * 1.3); border-color: rgba(255, 255, 255, 0.75); }
 .btn.fly.on { background: rgba(255, 255, 255, 0.3); box-shadow: 0 0 26px rgba(255, 255, 255, 0.6); }
 .btn.flip { position: absolute; right: calc(var(--safe-r) + var(--b) * 1.3 + 14px); bottom: var(--safe-b); border-color: rgba(255, 59, 74, 0.7); }
+.btn.spin { position: absolute; right: calc(var(--safe-r) + var(--b) * 1.3 + 14px); bottom: calc(var(--safe-b) + var(--b) + 12px); border-color: rgba(255, 214, 90, 0.8); }
+.btn.spin.on { background: rgba(255, 214, 90, 0.3); box-shadow: 0 0 22px rgba(255, 214, 90, 0.65); }
 .btn.flip.on { background: rgba(255, 59, 74, 0.3); box-shadow: 0 0 22px rgba(255, 59, 74, 0.6); }
 .btn.boost { position: absolute; right: var(--safe-r); bottom: calc(var(--safe-b) + var(--b) * 1.3 + 12px); width: calc(var(--b) * 0.9); height: calc(var(--b) * 0.9); border-color: rgba(255, 170, 60, 0.8); }
 .btn.boost.on { background: rgba(255, 150, 40, 0.3); box-shadow: 0 0 22px rgba(255, 150, 40, 0.65); }
@@ -187,3 +190,66 @@ h1 {
 #rotate p { opacity: 0.8; padding: 0 30px; }
 @keyframes tilt { 0%, 30% { transform: rotate(0); } 70%, 100% { transform: rotate(-90deg); } }
 @media (orientation: portrait) and (max-width: 700px) { #rotate { display: grid; } }
+
+/* ---------- bansväljare ---------- */
+.spawn { display: flex; justify-content: center; gap: 8px; margin: 4px 0 8px; }
+.spawn button {
+  border: 1px solid rgba(62, 224, 255, 0.4);
+  background: rgba(10, 16, 26, 0.6);
+  border-radius: 999px;
+  padding: 6px 14px;
+  font-size: clamp(12px, 3.2vmin, 14px);
+  font-weight: 600;
+  letter-spacing: 0.04em;
+}
+.spawn button.sel { background: rgba(62, 224, 255, 0.25); border-color: var(--cyan); box-shadow: 0 0 14px rgba(62, 224, 255, 0.4); }
+
+/* ---------- betyg och toast ---------- */
+#result {
+  position: fixed;
+  left: 50%;
+  top: 22%;
+  transform: translateX(-50%);
+  text-align: center;
+  background: rgba(8, 12, 20, 0.72);
+  border: 1px solid rgba(255, 214, 90, 0.5);
+  border-radius: 18px;
+  padding: 10px 26px 12px;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  pointer-events: none;
+  min-width: 260px;
+  max-width: 88vw;
+}
+#result.show { animation: pop 4.2s ease both; }
+@keyframes pop {
+  0% { opacity: 0; transform: translateX(-50%) scale(0.7); }
+  8% { opacity: 1; transform: translateX(-50%) scale(1.06); }
+  14% { transform: translateX(-50%) scale(1); }
+  86% { opacity: 1; }
+  100% { opacity: 0; transform: translateX(-50%) translateY(-14px); }
+}
+#result .grade { font-size: clamp(22px, 7vmin, 36px); font-weight: 800; letter-spacing: 0.1em; color: #ffe39a; }
+#result .grade.crash { color: #ff6f7a; }
+#result .stars { font-size: clamp(22px, 7vmin, 34px); color: #ffd65a; letter-spacing: 0.1em; line-height: 1.1; }
+#result .stars .dim { opacity: 0.2; }
+#result .line { font-size: clamp(11px, 3vmin, 14px); opacity: 0.85; margin-top: 2px; }
+#result .bars { display: flex; justify-content: center; gap: 14px; font-size: clamp(10px, 2.8vmin, 13px); opacity: 0.7; margin-top: 4px; }
+#result .bars b { color: var(--cyan); }
+#result .score { font-size: clamp(20px, 6vmin, 30px); font-weight: 300; margin-top: 2px; }
+#result .score small { font-size: 0.5em; opacity: 0.6; margin-left: 2px; }
+
+#toast {
+  position: fixed;
+  left: 50%;
+  bottom: 22%;
+  transform: translateX(-50%);
+  background: rgba(8, 12, 20, 0.8);
+  border: 1px solid rgba(62, 224, 255, 0.4);
+  border-radius: 999px;
+  padding: 8px 18px;
+  font-size: 13px;
+  pointer-events: none;
+}
+#toast.show { animation: fade 1.8s ease both; }
+@keyframes fade { 0% { opacity: 0; } 10%, 80% { opacity: 1; } 100% { opacity: 0; } }

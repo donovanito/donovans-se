@@ -10,7 +10,7 @@ GitHub Actions builds and deploys it to one.com (SFTP, `.github/workflows/deploy
 | AutoPlan - förslag på ny webbplats (prototyp) | https://freshautoplan.donovans.se | `sites/freshautoplan` (static HTML, noindex) |
 | Planetspelet (game) | https://planetspelet.donovans.se | `sites/planetspelet` (static HTML/JS, no build) |
 | Gamma Station (FPS game) | https://gamma.donovans.se | `sites/gamma` (static, bundled `game.js`; source in `games-src/gamma`, rebuild with `npm ci && npm run build` there and commit) |
-| Delta Roadster (sandbox car game, drive/upside-down/fly) | https://delta.donovans.se | `sites/delta` (static HTML/JS, no build) |
+| Delta Roadster (sandbox car game: drive, upside-down, fly, wall run and car-jump stunts with rating) | https://delta.donovans.se | `sites/delta` (static HTML/JS, no build) |
 
 ## Add a new subdomain
 
