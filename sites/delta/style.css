@@ -253,3 +253,10 @@ h1 {
 }
 #toast.show { animation: fade 1.8s ease both; }
 @keyframes fade { 0% { opacity: 0; } 10%, 80% { opacity: 1; } 100% { opacity: 0; } }
+
+/* ---------- offline-status ---------- */
+.offline { margin-top: 8px; font-size: 12px; letter-spacing: 0.03em; opacity: 0.85; }
+.offline.ok { color: #7dffb0; }
+.offline.wait { color: #ffe39a; }
+.offline.hint { color: #9fdcff; }
+.offline b { font-weight: 700; }

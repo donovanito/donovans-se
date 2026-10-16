@@ -1306,6 +1306,43 @@ function frame(now) {
   requestAnimationFrame(frame);
 }
 
+/* =====================================================================
+   OFFLINE (service worker + status i menyn)
+   ===================================================================== */
+const offlineEl = $("#offline");
+const standalone = !!(window.navigator.standalone || (window.matchMedia && matchMedia("(display-mode: standalone)").matches));
+const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+function setOffline(state) {
+  if (!offlineEl) return;
+  let txt = "", cls = "offline";
+  if (state === "ready") {
+    cls += " ok";
+    txt = standalone ? "✓ Klar för offline - spelet startar utan nät"
+      : "✓ Nedladdat för offline" + (isIOS ? " - tryck Dela och Lägg till på hemskärmen för att spela som app" : "");
+  } else if (state === "loading") { cls += " wait"; txt = "Laddar ned för offline..."; }
+  else if (state === "unsupported") {
+    cls += " hint"; txt = "Offline stöds inte i den här webbläsaren";
+  }
+  offlineEl.className = cls; offlineEl.textContent = txt; offlineEl.hidden = !txt;
+}
+async function checkOffline() {
+  try {
+    const need = ["game.js", "index.html", "style.css"];
+    const hits = await Promise.all(need.map((n) => caches.match(n, { ignoreSearch: true })));
+    return hits.every(Boolean);
+  } catch (e) { return false; }
+}
+if ("serviceWorker" in navigator && "caches" in window && location.protocol !== "file:") {
+  setOffline("loading");
+  navigator.serviceWorker.addEventListener("message", (e) => { if (e.data && e.data.type === "offline-ready") checkOffline().then((ok) => ok && setOffline("ready")); });
+  navigator.serviceWorker.register("sw.js").then(() => navigator.serviceWorker.ready)
+    .then(() => checkOffline()).then((ok) => setOffline(ok ? "ready" : "loading"))
+    .catch(() => setOffline("unsupported"));
+  // om första nedladdningen dröjer: kolla igen en stund
+  let tries = 0;
+  const t = setInterval(() => { checkOffline().then((ok) => { if (ok) { setOffline("ready"); clearInterval(t); } }); if (++tries > 20) clearInterval(t); }, 1500);
+}
+
 resize();
 setMuted(!!save.muted);
 resetCar(0);
