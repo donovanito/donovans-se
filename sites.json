@@ -22,5 +22,9 @@
   "gamma": {
     "host": "gamma.donovans.se",
     "dir": "webroots/7d8f3458/"
+  },
+  "delta": {
+    "host": "delta.donovans.se",
+    "dir": "webroots/c4f603b4/"
   }
 }

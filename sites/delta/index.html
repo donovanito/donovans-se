@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="sv">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<title>Delta Roadster</title>
+<meta name="description" content="Kör, vänd upp och ner och flyg - en sandlåda för en roadster som kan allt.">
+<meta name="robots" content="noindex">
+<meta name="theme-color" content="#05070b">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Delta Roadster">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<canvas id="c" aria-label="Delta Roadster"></canvas>
+
+<!-- HUD -->
+<div id="hud" hidden>
+  <div class="chip speed"><b id="spd">0</b><small>km/h</small></div>
+  <div class="chip mode" id="modeChip">GOLV</div>
+  <div class="chip fly" id="flyChip" hidden>FLYGER</div>
+  <div class="spacer"></div>
+  <button class="round" id="mute" aria-label="Ljud av/på"></button>
+  <button class="round" id="menuBtn" aria-label="Meny"><svg viewBox="0 0 24 24"><path d="M8 5v14M16 5v14"/></svg></button>
+</div>
+
+<!-- Touchkontroller -->
+<div id="touch" hidden>
+  <div id="drive">
+    <div class="btn" data-act="left" aria-label="Vänster"><svg viewBox="0 0 24 24"><path d="M15 4 L6 12 L15 20"/></svg></div>
+    <div class="btn" data-act="right" aria-label="Höger"><svg viewBox="0 0 24 24"><path d="M9 4 L18 12 L9 20"/></svg></div>
+  </div>
+  <div class="btn boost" data-act="boost"><svg viewBox="0 0 24 24"><path d="M3 5 L11 12 L3 19 M12 5 L20 12 L12 19"/></svg><span>BOOST</span></div>
+  <div class="btn flip" data-act="flip"><svg viewBox="0 0 24 24"><path d="M5 9 A8 8 0 0 1 19 9 M19 9 L19 4 M19 9 L14 9 M19 15 A8 8 0 0 1 5 15 M5 15 L5 20 M5 15 L10 15"/></svg><span>VÄND</span></div>
+  <div class="btn fly" data-act="fly"><svg viewBox="0 0 24 24"><path d="M4 15 L12 6 L20 15 M4 21 L12 12 L20 21"/></svg><span>FLYG</span></div>
+</div>
+
+<!-- Start / paus -->
+<div id="menu">
+  <div class="card">
+    <div class="eyebrow">DELTA</div>
+    <h1>Roadster</h1>
+    <p class="tag">Kör. Vänd upp och ner. Flyg.</p>
+    <ul class="how">
+      <li><b>◀ ▶</b> kör och bromsa - i luften lutar du bilen</li>
+      <li><b>VÄND</b> byter gravitation - kör på taket!</li>
+      <li><b>FLYG</b> håll in för thrusters, luta för att styra</li>
+      <li><b>BOOST</b> ludicrous-läge, perfekt från en ramp</li>
+    </ul>
+    <div class="paint" id="paint" aria-label="Lackfärg"></div>
+    <button class="go" id="go">Kör!</button>
+    <div class="stats" id="stats"></div>
+    <p class="keys">Tangentbord: piltangenter/A D, W/mellanslag = flyg, F = vänd, Shift = boost</p>
+  </div>
+</div>
+
+<div id="rotate"><div><svg viewBox="0 0 48 48"><rect x="14" y="4" width="20" height="40" rx="4"/><path d="M6 24 A18 18 0 0 0 20 42"/></svg><p>Vrid telefonen - spelet går i liggande läge</p></div></div>
+
+<script src="game.js"></script>
+</body>
+</html>
