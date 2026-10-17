@@ -1,7 +1,7 @@
 /* Delta Roadster - service worker: laddar ned hela spelet för offline-spel.
-   Cache först (spelet startar direkt, även utan nät) och uppdatering i bakgrunden,
-   så en ny version syns nästa gång appen startas. Höj VERSION för att tvinga omladdning av allt. */
-const VERSION = "delta-v1";
+   Nät först (alltid senaste versionen när du är online, med 3 s tidsgräns) och cache som
+   reserv, så spelet startar även utan nät. Höj VERSION för att tvinga omladdning av allt. */
+const VERSION = "delta-v2";
 const ASSETS = [
   "./", "index.html", "style.css", "game.js", "manifest.webmanifest",
   "icon.svg", "icon-192.png", "icon-512.png", "apple-touch-icon.png",
@@ -30,16 +30,20 @@ self.addEventListener("fetch", (e) => {
   if (req.method !== "GET" || new URL(req.url).origin !== self.location.origin) return;
   e.respondWith(
     caches.open(VERSION).then(async (cache) => {
-      const hit = await cache.match(req, { ignoreSearch: true });
-      const net = fetch(req).then((res) => {
-        if (res && res.ok) cache.put(req, res.clone());
-        return res;
-      }).catch(() => null);
-      if (hit) { e.waitUntil(net); return hit; }          // cache först, uppdatera i bakgrunden
-      const res = await net;
-      if (res) return res;
-      if (req.mode === "navigate") return cache.match("index.html");
-      return new Response("", { status: 504 });
+      const fromCache = () => cache.match(req, { ignoreSearch: true });
+      try {
+        const net = await Promise.race([
+          fetch(req),
+          new Promise((_, rej) => setTimeout(() => rej(new Error("timeout")), 3000)),
+        ]);
+        if (net && net.ok) { cache.put(req, net.clone()); return net; }
+        return (await fromCache()) || net;
+      } catch (err) {
+        const hit = await fromCache();
+        if (hit) return hit;
+        if (req.mode === "navigate") return cache.match("index.html");
+        return new Response("", { status: 504 });
+      }
     })
   );
 });

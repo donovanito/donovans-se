@@ -1,7 +1,7 @@
 {
   "name": "Delta Roadster",
   "short_name": "Roadster",
-  "description": "Kör, vänd upp och ner och flyg - en sandlåda för en roadster som kan allt.",
+  "description": "Kör, flyg och gör stunts - upp i rundeln, över bilarna och en tunnrulle i luften.",
   "start_url": "./",
   "display": "fullscreen",
   "orientation": "landscape",

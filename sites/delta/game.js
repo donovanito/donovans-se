@@ -2,9 +2,10 @@
 "use strict";
 
 /* =====================================================================
-   Delta Roadster - sandlåda för en roadster som kan köra, köra upp och
-   ner (gravitationsflipp, tak-körning) och flyga (thrusters).
-   Sidovy, liggande läge. Två stuntbanor: BILHOPPET och VÄGGEN.
+   Delta Roadster - sandlåda för en roadster som kör, flyger och gör
+   stunts. Sidovy, liggande läge, öppen himmel, banan har ett slut.
+   Två stuntbanor: BILHOPPET (ramp + parkerade bilar) och VÄGGEN
+   (rundeln: kör upp, lämna kanten bakåt och loopa i luften).
    Efter varje hopp sätts ett betyg på stil och landning.
    ===================================================================== */
 
@@ -25,13 +26,15 @@ const VBOOST = 1750;     // toppfart med boost
 const VREV = 420;        // max backfart (med gas)
 const THR = 1.5 * G;     // thrusterkraft (längs takriktningen)
 const H0 = 20;           // axelhöjd över ytan
-const HEADROOM = 36;     // takets avstånd till motsatt yta
-const SPIN_W = 8.8;      // snurrhastighet, rad/s
+const ROLL_W = 9.0;      // tunnrullens hastighet, rad/s
+const ALT_SOFT = -2000;  // över denna höjd tappar thrustrarna kraft
+const ALT_MAX = -2300;   // ...och här är de helt slut
 
 /* ---------- världen ---------- */
-const CEIL = -520;       // taknivå i sandlådan
 const VIEW_H = 620;      // synlig höjd i världsenheter
 const CAM_Y = -245;      // normal kameranivå
+const START_X = -360;    // bakre barriär
+const END_X = 11100;     // banans slut
 
 const smooth = (t) => t * t * (3 - 2 * t);
 // ramp: kurvad stigning, sedan ett brant fall - bra att hoppa från
@@ -42,23 +45,13 @@ function kicker(x, period, offset, rise, len) {
   return 0;
 }
 
-/* stuntbanor: plana zoner utan tak (öppen himmel) */
+/* stuntbanor: plana zoner */
 const ZONES = [{ a: 4000, b: 6900 }, { a: 7600, b: 10300 }];
 const ZE = 250;
 function zoneF(x) {
   let f = 0;
   for (const z of ZONES) {
     const t = smooth(clamp((x - (z.a - ZE)) / ZE, 0, 1)) * smooth(clamp(((z.b + ZE) - x) / ZE, 0, 1));
-    if (t > f) f = t;
-  }
-  return f;
-}
-// taket lyfter mjukare än golvet planas ut
-const CE = 900;
-function zoneC(x) {
-  let f = 0;
-  for (const z of ZONES) {
-    const t = smooth(clamp((x - (z.a - CE)) / CE, 0, 1)) * smooth(clamp(((z.b + CE) - x) / CE, 0, 1));
     if (t > f) f = t;
   }
   return f;
@@ -71,11 +64,16 @@ const VEH = [
   { id: 3, type: "cyber", name: "Cybertruck", x0: 5880, w: 150, h: 66, color: "#98a1ab" },
 ];
 for (const v of VEH) { v.x1 = v.x0 + v.w; v.topY = -v.h; }
-const WALL = { x0: 8800, R: 480, th: (84 * Math.PI) / 180 };
-WALL.x1 = WALL.x0 + WALL.R * Math.sin(WALL.th);
-WALL.h = WALL.R * (1 - Math.cos(WALL.th));
+
+/* rundeln: en cirkelbåge som reser sig ur marken, förbi lodrätt, så att
+   man kastas ut bakåt. Cirkelns mittpunkt är (x0, -R). */
+const WALL = { x0: 8800, R: 420, thMax: (112 * Math.PI) / 180, thLow: (89 * Math.PI) / 180 };
+WALL.xLow = WALL.x0 + WALL.R * Math.sin(WALL.thLow);                 // höjdfältet (för landning) når hit
+WALL.lipX = WALL.x0 + WALL.R * Math.sin(WALL.thMax);
+WALL.lipY = -WALL.R + WALL.R * Math.cos(WALL.thMax);
+WALL.xMax = WALL.x0 + WALL.R;
 const wallH = (x) => {
-  if (x <= WALL.x0 || x >= WALL.x1) return 0;
+  if (x <= WALL.x0 || x >= WALL.xLow) return 0;
   const u = (x - WALL.x0) / WALL.R;
   return WALL.R * (1 - Math.sqrt(1 - u * u));
 };
@@ -91,24 +89,23 @@ const floorY = (x) => {
   }
   return -h;
 };
-const ceilY = (x) => {
-  const f = zoneC(x);
-  return CEIL + (14 * Math.sin(x / 270 + 1) + 10 * Math.sin(x / 117) + 20 * Math.sin(x / 900) + kicker(x, 3300, 2500, 95, 270)) * (1 - f) - 2600 * f;
-};
-const slopeOf = (fn, x) => (fn(x + 1) - fn(x - 1)) / 2;
+const slopeOf = (x) => (floorY(x + 1) - floorY(x - 1)) / 2;
 
 // ytans koordinatsystem i punkten x: px,py = punkten, rx,ry = normal bort från ytan (takriktning)
-function frameAt(fn, s, x) {
-  const sl = slopeOf(fn, x), inv = 1 / Math.hypot(1, sl);
-  return { sl, inv, px: x, py: fn(x), rx: s * sl * inv, ry: -s * inv };
+function frameAt(x) {
+  const sl = slopeOf(x), inv = 1 / Math.hypot(1, sl);
+  return { sl, inv, px: x, py: floorY(x), rx: sl * inv, ry: -inv };
 }
+
+// bilens mittpunkt på rundeln (H0 från ytan) för vinkeln th
+const arcCenter = (th) => ({ x: WALL.x0 + (WALL.R - H0) * Math.sin(th), y: -WALL.R + (WALL.R - H0) * Math.cos(th) });
 
 /* =====================================================================
    SPARAT
    ===================================================================== */
 const KEY = "delta-roadster-v1";
 const PAINT = ["#e82127", "#f2f4f8", "#232b3b", "#2f7bff"];
-let save = { top: 0, air: 0, flips: 0, color: 0, muted: false, best: 0, stars: 0, maxFlips: 0 };
+let save = { top: 0, air: 0, color: 0, muted: false, best: 0, stars: 0, maxFlips: 0 };
 try { Object.assign(save, JSON.parse(localStorage.getItem(KEY) || "{}")); } catch (e) {}
 const store = () => { try { localStorage.setItem(KEY, JSON.stringify(save)); } catch (e) {} };
 
@@ -116,25 +113,27 @@ const store = () => { try { localStorage.setItem(KEY, JSON.stringify(save)); } c
    BILEN
    ===================================================================== */
 const car = {
-  x: 0, y: 0, xc: 0,        // x,y = bilens mitt; xc = kontaktpunkt på ytan (på marken)
+  x: 0, y: 0, xc: 0,        // x,y = bilens mitt; xc = kontaktpunkt på marken
   vx: 0, vy: 0,
-  s: 1,                      // gravitationsriktning: 1 = golv, -1 = tak
   grounded: true,
-  a: 0,                      // lutning/pitch (takriktning = (sin a, -s cos a))
+  arc: null,                 // { th } när bilen kör på rundeln
+  a: 0,                      // lutning/pitch (takriktning = (sin a, -cos a))
+  pr: 0,                     // pitch-hastighet efter att ha lämnat rundeln (loop)
   face: 1,                   // körriktning
-  faceVis: 1, sVis: 1,
+  faceVis: 1,
+  roll: 0, rollRem: 0,       // tunnrulle (åt sidan)
   wheel: 0,
   vt: 0,                     // fart längs ytan
   dx: 1, dy: 0,              // filtrerad körriktning längs ytan (behåller rampens vinkel vid avhopp)
-  flipCd: 0,
   flying: false,
-  spinRem: 0, spinDir: 1, spinBuf: 0,
+  spinBuf: 0,
+  leftWall: false,
 };
 function resetCar(x) {
   const c = car;
-  c.s = 1; c.sVis = 1; c.face = 1; c.faceVis = 1; c.a = 0; c.vt = 0; c.vx = 0; c.vy = 0;
-  c.grounded = true; c.spinRem = 0; c.xc = x; c.flipCd = 0;
-  const fr = frameAt(floorY, 1, x);
+  c.face = 1; c.faceVis = 1; c.a = 0; c.pr = 0; c.vt = 0; c.vx = 0; c.vy = 0;
+  c.roll = 0; c.rollRem = 0; c.arc = null; c.grounded = true; c.xc = x; c.spinBuf = 0; c.leftWall = false;
+  const fr = frameAt(x);
   c.x = fr.px + fr.rx * H0; c.y = fr.py + fr.ry * H0;
   c.a = Math.atan(fr.sl);
   c.dx = fr.inv; c.dy = fr.sl * fr.inv;
@@ -143,7 +142,7 @@ function resetCar(x) {
   camX = c.x; camYv = CAM_Y; zoom = 1;
 }
 
-const inp = { left: false, right: false, fly: false, boost: false, flipQ: false, spinQ: false };
+const inp = { left: false, right: false, fly: false, boost: false, spinQ: false };
 
 /* =====================================================================
    LJUD (WebAudio, startas vid första tryck)
@@ -274,60 +273,32 @@ let lastResult = null;
 
 const axes = (c) => {
   const ca = Math.cos(c.a), sa = Math.sin(c.a);
-  return { fx: c.face * ca, fy: c.face * c.s * sa, rx: sa, ry: -c.s * ca };
+  return { fx: c.face * ca, fy: c.face * sa, rx: sa, ry: -ca };
 };
 const toWorld = (c, ax, lx, ly) => ({ x: c.x + ax.fx * lx - ax.rx * ly, y: c.y + ax.fy * lx - ax.ry * ly });
 
-let toastT = 0;
-function toast(msg) {
-  const t = $("#toast");
-  t.textContent = msg; t.hidden = false; t.classList.remove("show"); void t.offsetWidth; t.classList.add("show");
-  clearTimeout(toastT); toastT = setTimeout(() => { t.hidden = true; }, 1800);
-}
-
-function doFlip() {
-  const c = car;
-  if (c.flipCd > 0) return;
-  if (ceilY(c.x) < -1200) { toast("Inget tak här - öppen himmel"); return; }
-  c.flipCd = 0.45;
-  c.s = -c.s;
-  c.grounded = false;
-  c.vy += c.s * 380;
-  save.flips++;
-  sfxNoise(500, 3200, 0.4, 0.5);
-  for (let i = 0; i < 26; i++) {
-    const a = (i / 26) * TAU;
-    emit(c.x, c.y, Math.cos(a) * 420 + c.vx * 0.3, Math.sin(a) * 420 + c.vy * 0.3, 0.45, 26, "cyan", -20);
-  }
-}
-
-function doSpin(inx) {
+// tunnrulle: rullar åt sidan (inte volt framåt/bakåt) - bilen ska vara hel när den landar
+function doSpin() {
   const c = car;
   if (c.grounded) { c.spinBuf = 0.4; return; }          // tryck strax före avhopp räknas också
-  if (c.spinRem > 2.5 * TAU) return;
-  if (c.spinRem <= 1e-4) {
-    const fwd = inx !== 0 && inx === c.face;       // håll framåt = framåtvolt, annars bakåtvolt
-    c.spinDir = (fwd ? 1 : -1) * c.face * c.s;
-  }
-  c.spinRem += TAU;
+  if (c.rollRem > 2.5 * TAU) return;
+  c.rollRem += TAU;
   sfxNoise(300, 1800, 0.35, 0.35);
 }
 
 /* ---------- hopp och betyg ---------- */
 function beginAir() {
-  air = { t0: time, spinTotal: 0, maxH: 0, over: new Set(), crashed: false, flyT: 0 };
+  air = { t0: time, rollTotal: 0, loops: 0, maxH: 0, over: new Set(), crashed: false, wall: car.leftWall };
+  car.leftWall = false;
 }
-function trackAir(dt) {
+const airFlips = (a) => Math.floor(a.rollTotal / TAU + 0.12) + a.loops;
+function trackAir() {
   const c = car;
   if (!air) return;
-  const fn = c.s > 0 ? floorY : ceilY;
-  const h = c.s * (fn(c.x) - c.y) - H0;
+  const h = floorY(c.x) - c.y - H0;
   if (h > air.maxH) air.maxH = h;
-  if (c.flying) air.flyT += dt;
-  if (c.s > 0) {
-    for (const v of VEH) {
-      if (c.x >= v.x0 + 10 && c.x <= v.x1 - 10 && c.y + 17 < v.topY - 4) air.over.add(v.id);
-    }
+  for (const v of VEH) {
+    if (c.x >= v.x0 + 10 && c.x <= v.x1 - 10 && c.y + 17 < v.topY - 4) air.over.add(v.id);
   }
 }
 
@@ -339,7 +310,7 @@ function endAir(land) {
   if (!a || !land) return;
   const c = car;
   const t = time - a.t0;
-  const flips = Math.floor(a.spinTotal / TAU + 0.12);
+  const flips = airFlips(a);
   const over = a.over.size;
   const worthy = t >= 0.8 && (flips > 0 || over > 0 || a.maxH >= 250);
   if (!worthy) return;
@@ -397,10 +368,10 @@ function land(info) {
     const ax = axes(c);
     const p = toWorld(c, ax, 0, 18);
     for (let i = 0; i < 14; i++) {
-      emit(p.x, p.y, rnd(-260, 260) + c.vx * 0.2, rnd(220, 420) * -c.s * (Math.random() * 0.7 + 0.3), rnd(0.4, 0.8), rnd(14, 28), "dust", 30, false);
+      emit(p.x, p.y, rnd(-260, 260) + c.vx * 0.2, -rnd(220, 420) * (Math.random() * 0.7 + 0.3), rnd(0.4, 0.8), rnd(14, 28), "dust", 30, false);
     }
-    for (let i = 0; i < 8; i++) emit(p.x, p.y, rnd(-300, 300), -c.s * rnd(120, 420), rnd(0.2, 0.45), rnd(6, 12), "spark", -10);
-    if (info.crash) for (let i = 0; i < 18; i++) emit(p.x, p.y, rnd(-500, 500), -c.s * rnd(100, 600), rnd(0.4, 0.9), rnd(14, 30), "orange", -10);
+    for (let i = 0; i < 8; i++) emit(p.x, p.y, rnd(-300, 300), -rnd(120, 420), rnd(0.2, 0.45), rnd(6, 12), "spark", -10);
+    if (info.crash) for (let i = 0; i < 18; i++) emit(p.x, p.y, rnd(-500, 500), -rnd(100, 600), rnd(0.4, 0.9), rnd(14, 30), "orange", -10);
   }
 }
 
@@ -414,25 +385,69 @@ function bump(intensity) {
 /* =====================================================================
    UPPDATERING
    ===================================================================== */
-// närmaste punkt på ytan till (ex,ey), sökt längs ytan i ~lika långa steg
-function nearestOnSurface(fn, ex, ey, xg, inv0) {
+// närmaste punkt på marken till (ex,ey), sökt längs ytan i ~lika långa steg
+function nearestOnSurface(ex, ey, xg, inv0) {
   const d = 7 * inv0 + 0.5;
   let best = Infinity, bx = xg;
   for (let k = -7; k <= 7; k++) {
-    const x = xg + k * d, dx = ex - x, dy = ey - fn(x), dd = dx * dx + dy * dy;
+    const x = xg + k * d, dx = ex - x, dy = ey - floorY(x), dd = dx * dx + dy * dy;
     if (dd < best) { best = dd; bx = x; }
   }
   const x0 = bx;
   for (let k = -4; k <= 4; k++) {
-    const x = x0 + k * d * 0.25, dx = ex - x, dy = ey - fn(x), dd = dx * dx + dy * dy;
+    const x = x0 + k * d * 0.25, dx = ex - x, dy = ey - floorY(x), dd = dx * dx + dy * dy;
     if (dd < best) { best = dd; bx = x; }
   }
   return { x: bx, d: Math.sqrt(best) };
 }
 
-function groundStep(dt, inx, boost, fn) {
-  const c = car, s = c.s;
-  const fr = frameAt(fn, s, c.xc);
+function enterArc(vt, th) {
+  const c = car;
+  c.arc = { th: Math.max(0, th) };
+  c.vt = vt;
+}
+
+// på rundeln: bilen följer cirkelbågen, tyngdkraften drar längs banan
+function arcStep(dt, inx, boost) {
+  const c = car, R = WALL.R;
+  let vt = c.vt, th = c.arc.th;
+  const vmax = boost ? VBOOST : VMAX;
+  if (inx) vt += inx * ACC * (boost ? 2.6 : 1) * dt;
+  else vt *= Math.exp(-0.3 * dt);
+  if (boost && !inx) vt += ACC * 1.8 * dt;
+  vt -= G * Math.sin(th) * dt;
+  if (vt > vmax) vt = Math.max(vmax, vt - 3600 * dt);
+  else if (vt < -1500) vt = -1500;
+  th += (vt / R) * dt;
+  c.vt = vt;
+
+  if (th <= 0) {                                      // tillbaka ner på golvet
+    c.arc = null; c.xc = WALL.x0 - 1;
+    c.x = WALL.x0 - 1; c.y = -H0; c.vx = vt; c.vy = 0; c.dx = 1; c.dy = 0;
+    return;
+  }
+  const lip = th >= WALL.thMax;
+  const N = (vt * vt) / R + G * Math.cos(th);          // anpressning mot ytan
+  if (lip || N < 0) {                                  // lämnar rundeln (kanten, eller för lite fart uppe)
+    th = Math.min(th, WALL.thMax);
+    const p = arcCenter(th);
+    c.x = p.x; c.y = p.y;
+    c.vx = vt * Math.cos(th); c.vy = -vt * Math.sin(th);
+    c.arc = null; c.grounded = false;
+    if (lip && vt > 300) { c.pr = -Math.abs(vt) / R; c.leftWall = true; }   // loopen fortsätter i luften
+    return;
+  }
+  c.arc.th = th;
+  const p = arcCenter(th);
+  c.x = p.x; c.y = p.y;
+  c.dx = Math.cos(th); c.dy = -Math.sin(th);
+  c.vx = vt * c.dx; c.vy = vt * c.dy;
+}
+
+function groundStep(dt, inx, boost) {
+  const c = car;
+  if (c.arc) { arcStep(dt, inx, boost); return; }
+  const fr = frameAt(c.xc);
   let vt = c.vt;
   const tx = fr.inv, ty = fr.sl * fr.inv;
   const sinT = fr.sl * fr.inv;
@@ -442,17 +457,24 @@ function groundStep(dt, inx, boost, fn) {
   } else vt *= Math.exp(-0.6 * dt);
   if (boost && !inx) vt += c.face * ACC * 1.8 * dt;
   const k = 0.35 + 0.65 * clamp((Math.abs(sinT) - 0.45) / 0.4, 0, 1);   // branta partier drar hårdare
-  vt += s * G * k * sinT * dt;
+  vt += G * k * sinT * dt;
   if (vt > vmax) vt = Math.max(vmax, vt - 3600 * dt);
   else if (vt < -1500) vt = -1500;
   if (inx && Math.abs(vt) < 90) c.face = inx;
 
+  // rundeln börjar vid x0: därifrån följer bilen cirkelbågen
+  if (vt > 0 && c.xc < WALL.x0 && c.xc + vt * fr.inv * dt >= WALL.x0) {
+    enterArc(vt, 0);
+    arcStep(dt, inx, boost);
+    return;
+  }
+
   // förväntad mittpunkt längs filtrerad riktning, och närmaste punkt på ytan
   const ex = c.x + vt * c.dx * dt, ey = c.y + vt * c.dy * dt;
-  const near = nearestOnSurface(fn, ex, ey, c.xc + vt * fr.inv * dt, fr.inv);
-  const fr2 = frameAt(fn, s, near.x);
+  const near = nearestOnSurface(ex, ey, c.xc + vt * fr.inv * dt, fr.inv);
+  const fr2 = frameAt(near.x);
   const xc = near.x;
-  const rise = s * (fr.py - fr2.py);                 // positivt = nya punkten är högre
+  const rise = fr.py - fr2.py;                        // positivt = nya punkten är högre
   if (rise > Math.abs(vt) * dt * 1.25 + 12) {         // vägg som man kör in i
     if (Math.abs(vt) > 150) bump(clamp(Math.abs(vt) / 1500, 0.2, 0.7));
     vt = -vt * 0.25;
@@ -460,7 +482,7 @@ function groundStep(dt, inx, boost, fn) {
     return;
   }
   c.vt = vt;
-  if (near.d > H0 + 2.5) {                            // ytan försvinner under bilen (krön, ramp, väggkant)
+  if (near.d > H0 + 2.5) {                            // ytan försvinner under bilen (krön, ramp, kant)
     c.vx = vt * c.dx; c.vy = vt * c.dy;
     c.grounded = false; c.x = ex; c.y = ey;
   } else {
@@ -473,12 +495,14 @@ function groundStep(dt, inx, boost, fn) {
   }
 }
 
-function airStep(dt, inx, fly, boost, fn, other) {
-  const c = car, s = c.s;
+function airStep(dt, inx, fly, boost) {
+  const c = car;
   const ax = axes(c);
-  let aX = 0, aY = s * G;
-  if (fly) { aX += ax.rx * THR; aY += ax.ry * THR; }
-  else aX += inx * 260;
+  let aX = 0, aY = G;
+  if (fly) {
+    const f = clamp((c.y - ALT_MAX) / (ALT_SOFT - ALT_MAX), 0, 1);      // thrustrarna tappar kraft på extrem höjd
+    aX += ax.rx * THR * f; aY += ax.ry * THR * f;
+  } else aX += inx * 260;
   if (boost) { aX += ax.fx * 1500; aY += ax.fy * 1500; }
   c.vx += aX * dt; c.vy += aY * dt;
   c.vx *= Math.exp(-(fly ? 1.3 : 0.18) * dt);
@@ -489,11 +513,11 @@ function airStep(dt, inx, fly, boost, fn, other) {
   const ox = c.x, oy = c.y;
   c.x += c.vx * dt; c.y += c.vy * dt;
 
-  // kontakt med den yta gravitationen drar mot
+  // kontakt med marken (eller rundeln)
   let xc = c.x;
   let fr;
-  for (let i = 0; i < 4; i++) { fr = frameAt(fn, s, xc); xc = c.x - fr.rx * H0; }
-  fr = frameAt(fn, s, xc);
+  for (let i = 0; i < 4; i++) { fr = frameAt(xc); xc = c.x - fr.rx * H0; }
+  fr = frameAt(xc);
   const dist = (c.x - fr.px) * fr.rx + (c.y - fr.py) * fr.ry;
   const pen = H0 - dist;
   if (pen > 0) {
@@ -504,24 +528,33 @@ function airStep(dt, inx, fly, boost, fn, other) {
       if (Math.hypot(c.vx, c.vy) > 250) { bump(0.5); if (air) air.crashed = true; }
       c.vx = -c.vx * 0.3; c.vy *= 0.5;
     } else if (vn <= 0 || pen > 6) {
-      const err = wrap(c.a - s * Math.atan(fr.sl));
-      const info = { vn: Math.max(0, -vn), err, crash: Math.abs(err) > 1.2 };
-      c.xc = xc;
-      c.x = fr.px + fr.rx * H0; c.y = fr.py + fr.ry * H0;
-      const tx = fr.inv, ty = fr.sl * fr.inv;
-      const vt = c.vx * tx + c.vy * ty;
-      c.vt = vt; c.vx = vt * tx; c.vy = vt * ty; c.dx = tx; c.dy = ty;
+      const onWall = xc > WALL.x0 + 1 && xc < WALL.xLow;
+      let info;
+      if (onWall) {                                    // landar på rundeln: fortsätt längs cirkelbågen
+        const th = Math.asin(clamp((xc - WALL.x0) / WALL.R, 0, 1));
+        const vt = c.vx * Math.cos(th) - c.vy * Math.sin(th);
+        info = { vn: Math.max(0, -vn), err: wrap(c.a + th), crash: false };
+        enterArc(vt, th);
+        const p = arcCenter(th);
+        c.x = p.x; c.y = p.y; c.dx = Math.cos(th); c.dy = -Math.sin(th);
+        c.vx = vt * c.dx; c.vy = vt * c.dy;
+      } else {
+        info = { vn: Math.max(0, -vn), err: wrap(c.a - Math.atan(fr.sl)), crash: false };
+        c.xc = xc;
+        c.x = fr.px + fr.rx * H0; c.y = fr.py + fr.ry * H0;
+        const tx = fr.inv, ty = fr.sl * fr.inv;
+        const vt = c.vx * tx + c.vy * ty;
+        c.vt = vt; c.vx = vt * tx; c.vy = vt * ty; c.dx = tx; c.dy = ty;
+      }
+      // tunnrullen måste vara klar - annars landar man på sidan / upp och ner
+      const rollErr = Math.abs(wrap(c.roll));
+      if (rollErr > Math.abs(info.err)) info.err = rollErr;
+      info.crash = Math.abs(info.err) > 1.2;
       c.grounded = true;
-      if (c.spinRem > 0) { c.spinRem = 0; c.a = wrap(c.a); }
+      c.rollRem = 0; c.pr = 0;
       land(info);
       c.landInfo = info;
     }
-  }
-  // stöt i motsatt yta (huvudet i taket)
-  const lim = other(c.x) + s * HEADROOM;
-  if (s * (c.y - lim) < 0) {
-    c.y = lim;
-    if (s * c.vy < 0) { c.vy = -c.vy * 0.25; if (Math.abs(c.vy) > 200) { shake = Math.max(shake, 4); sfxThump(0.25); } }
   }
   if (!c.grounded) c.vt = c.vx;
 }
@@ -529,7 +562,7 @@ function airStep(dt, inx, fly, boost, fn, other) {
 // parkerade bilar är fasta hinder: nosen/aktern stoppar mot sidan
 function vehCollide() {
   const c = car;
-  if (c.s < 0) return;
+  if (c.arc) return;
   const dir = c.vx >= 0 ? 1 : -1;
   const bottom = c.y + 17;
   for (const v of VEH) {
@@ -546,47 +579,68 @@ function vehCollide() {
   }
 }
 
+// banans slut: barriärer i båda ändar
+function boundsCollide() {
+  const c = car;
+  if (c.x > END_X - 62) {
+    c.x = END_X - 62; if (c.vx > 200) { bump(0.6); if (air) air.crashed = true; }
+    c.vx = -Math.abs(c.vx) * 0.25; c.vt = -Math.abs(c.vt) * 0.25; if (c.grounded) c.xc = c.x;
+  } else if (c.x < START_X + 62) {
+    c.x = START_X + 62; if (c.vx < -200) { bump(0.6); if (air) air.crashed = true; }
+    c.vx = Math.abs(c.vx) * 0.25; c.vt = Math.abs(c.vt) * 0.25; if (c.grounded) c.xc = c.x;
+  }
+}
+
 function update(dt) {
   const c = car;
   time += dt;
-  c.flipCd = Math.max(0, c.flipCd - dt);
   const inx = (inp.right ? 1 : 0) - (inp.left ? 1 : 0);
   const fly = inp.fly, boost = inp.boost;
   c.flying = fly;
-  if (inp.flipQ) { inp.flipQ = false; doFlip(); }
-  if (inp.spinQ) { inp.spinQ = false; doSpin(inx); }
+  if (inp.spinQ) { inp.spinQ = false; doSpin(); }
 
-  const fn = c.s > 0 ? floorY : ceilY;
-  const other = c.s > 0 ? ceilY : floorY;
   const wasGrounded = c.grounded;
   c.landInfo = null;
 
-  if (c.grounded && !fly) groundStep(dt, inx, boost, fn);
-  else { c.grounded = false; airStep(dt, inx, fly, boost, fn, other); }
+  if (c.grounded && (!fly || c.arc)) groundStep(dt, inx, boost);   // på rundeln gäller banans fysik
+  else { c.grounded = false; c.arc = null; airStep(dt, inx, fly, boost); }
 
   vehCollide();
-  if (wasGrounded && !c.grounded) { beginAir(); if (c.spinBuf > 0) doSpin(inx); }
-  c.spinBuf = Math.max(0, (c.spinBuf || 0) - dt);
-  if (!c.grounded) trackAir(dt);
+  boundsCollide();
+  if (wasGrounded && !c.grounded) { beginAir(); if (c.spinBuf > 0) doSpin(); }
+  c.spinBuf = Math.max(0, c.spinBuf - dt);
+  if (!c.grounded) trackAir();
   if (!wasGrounded && c.grounded) endAir(c.landInfo);
 
-  // ---- lutning / snurr ----
+  // ---- lutning (pitch) ----
   if (c.grounded) {
-    const at = c.s * Math.atan(slopeOf(fn, c.xc));
+    const at = c.arc ? -c.arc.th : Math.atan(slopeOf(c.xc));
     c.a = damp(c.a, at, 16, dt);
-  } else if (c.spinRem > 0) {
-    const d = Math.min(c.spinRem, SPIN_W * dt);
-    c.a += c.spinDir * d; c.spinRem -= d;
-    if (air) air.spinTotal += d;
-    if (c.spinRem <= 1e-4) { c.spinRem = 0; c.a = wrap(c.a); }
+  } else if (c.pr) {
+    c.a += c.pr * dt;                                  // loopen från rundeln fortsätter tills bilen är på hjulen igen
+    if (c.a <= -TAU) {
+      c.a = 0; c.pr = 0;
+      if (air) air.loops++;
+    }
   } else {
     if (Math.abs(c.a) > Math.PI) c.a = wrap(c.a);
     let at, rate;
     if (fly || inx) { at = inx * 0.72; rate = 6; } else { at = 0; rate = 2.2; }
     c.a = damp(c.a, at, rate, dt);
   }
+
+  // ---- tunnrulle (åt sidan) ----
+  if (!c.grounded && c.rollRem > 0) {
+    const d = Math.min(c.rollRem, ROLL_W * dt);
+    c.roll += d; c.rollRem -= d;
+    if (air) air.rollTotal += d;
+    if (c.rollRem <= 1e-4) { c.rollRem = 0; c.roll = wrap(c.roll); }
+  } else if (c.grounded) {
+    c.roll = damp(wrap(c.roll), 0, 14, dt);
+  } else {
+    c.roll = damp(wrap(c.roll), 0, 10, dt);
+  }
   c.faceVis = damp(c.faceVis, c.face, 14, dt);
-  c.sVis = damp(c.sVis, c.s, 9, dt);
   c.wheel += (c.grounded ? c.vt * c.face : c.vt * c.face * 0.25) / 17 * dt;
 
   // ---- effekter ----
@@ -598,10 +652,9 @@ function update(dt) {
       const v = rnd(620, 900);
       emit(p.x, p.y, -ax.rx * v + c.vx * 0.35 + rnd(-40, 40), -ax.ry * v + c.vy * 0.35 + rnd(-40, 40), rnd(0.22, 0.4), rnd(18, 30), Math.random() < 0.5 ? "white" : "cyan", -34);
     }
-    const surf = (c.s > 0 ? floorY : ceilY)(c.x);
-    const h = c.s * (surf - c.y);
-    if (h < 130 && Math.random() < 0.9) {
-      emit(c.x + rnd(-50, 50), surf, rnd(-360, 360), -c.s * rnd(20, 90), rnd(0.35, 0.7), rnd(16, 30), "dust", 26, false);
+    const surf = floorY(c.x);
+    if (surf - c.y < 130 && Math.random() < 0.9) {
+      emit(c.x + rnd(-50, 50), surf, rnd(-360, 360), -rnd(20, 90), rnd(0.35, 0.7), rnd(16, 30), "dust", 26, false);
     }
   }
   if (boost) {
@@ -612,8 +665,8 @@ function update(dt) {
   }
   if (c.grounded && Math.abs(c.vt) > 380 && Math.random() < 0.55) {
     const p = toWorld(c, ax, -c.face * 38, 17);
-    emit(p.x, p.y, -c.vx * 0.15 + rnd(-40, 40), -c.s * rnd(30, 120), rnd(0.3, 0.6), rnd(10, 20), "dust", 22, false);
-    if (c.s < 0 || Math.abs(c.vt) > 1000) emit(p.x, p.y, -c.vx * 0.2, -c.s * rnd(60, 200), rnd(0.15, 0.3), rnd(5, 9), "spark", -10);
+    emit(p.x, p.y, -c.vx * 0.15 + rnd(-40, 40), -rnd(30, 120), rnd(0.3, 0.6), rnd(10, 20), "dust", 22, false);
+    if (Math.abs(c.vt) > 1000) emit(p.x, p.y, -c.vx * 0.2, -rnd(60, 200), rnd(0.15, 0.3), rnd(5, 9), "spark", -10);
   }
 
   // ---- statistik ----
@@ -622,7 +675,7 @@ function update(dt) {
 
   // ---- kamera (följer upp i luften och zoomar ut för att se marken) ----
   let tz = 1, ty = CAM_Y;
-  if (ceilY(c.x) < -900) {
+  {
     const topY = Math.min(c.y, c.y + c.vy * 0.3) - 150, botY = 90;
     const span = botY - topY;
     if (span > VIEW_H) { tz = VIEW_H / span; ty = (topY + botY) / 2; }
@@ -730,20 +783,20 @@ function drawSky() {
   }
 }
 
-// punkter längs en yta, tätare där den är brant
-function surfacePts(fn, x0, x1) {
+// punkter längs marken, tätare där den är brant
+function surfacePts(x0, x1) {
   const pts = [];
   let x = x0;
   while (x < x1) {
     pts.push(x);
-    const sl = Math.abs(slopeOf(fn, x));
+    const sl = Math.abs(slopeOf(x));
     x += clamp(14 / (1 + sl * 1.5), 1.2, 14);
   }
   pts.push(x1);
   return pts;
 }
 
-// ritar polylinjen i två färger beroende på pred(x)
+// ritar polylinjen i två färger beroende på pred(x); hide(x) = rita inte
 function strokeRuns(xs, ys, pred, styleA, widthA, styleB, widthB, hide) {
   for (const pass of [0, 1]) {
     ctx.beginPath();
@@ -759,13 +812,13 @@ function strokeRuns(xs, ys, pred, styleA, widthA, styleB, widthB, hide) {
   }
 }
 
-function chevrons(bx, len, fn, dir) {
+function chevrons(bx, len) {
   ctx.fillStyle = "rgba(255,200,40,0.9)";
   for (let i = 0; i < 4; i++) {
     const x = bx + 40 + i * (len / 5);
     ctx.beginPath();
-    ctx.moveTo(sx(x), sy(fn(x) + 8 * dir)); ctx.lineTo(sx(x + 20), sy(fn(x + 20) + 8 * dir));
-    ctx.lineTo(sx(x + 8), sy(fn(x + 8) + 16 * dir)); ctx.lineTo(sx(x - 12), sy(fn(x - 12) + 16 * dir));
+    ctx.moveTo(sx(x), sy(floorY(x) + 8)); ctx.lineTo(sx(x + 20), sy(floorY(x + 20) + 8));
+    ctx.lineTo(sx(x + 8), sy(floorY(x + 8) + 16)); ctx.lineTo(sx(x - 12), sy(floorY(x - 12) + 16));
     ctx.closePath(); ctx.fill();
   }
 }
@@ -773,63 +826,41 @@ function chevrons(bx, len, fn, dir) {
 function drawRoad() {
   const x0 = Math.floor((camX - W / 2 / sc - 80) / 14) * 14;
   const x1 = camX + W / 2 / sc + 80;
-  const ptsC = surfacePts(ceilY, x0, x1);
-  const ptsF = surfacePts(floorY, x0, x1);
-  const cYs = ptsC.map((x) => sy(ceilY(x)));
-  const fYs = ptsF.map((x) => sy(floorY(x)));
-  const showCeil = cYs.some((y) => y > -400);
+  const pts = surfacePts(Math.max(x0, START_X - 300), Math.min(x1, END_X + 300));
+  if (pts.length < 2) return;
+  const fYs = pts.map((x) => sy(floorY(x)));
+  const xa = pts[0], xb = pts[pts.length - 1];
 
-  // ---- tak ----
-  if (showCeil) {
-    ctx.beginPath();
-    ptsC.forEach((x, i) => (i ? ctx.lineTo(sx(x), cYs[i]) : ctx.moveTo(sx(x), cYs[i])));
-    ctx.lineTo(sx(x1), -60); ctx.lineTo(sx(x0), -60); ctx.closePath();
-    const cg = ctx.createLinearGradient(0, 0, 0, Math.max(10, Math.min(...cYs) + 200));
-    cg.addColorStop(0, "#04060a"); cg.addColorStop(1, "#111826");
-    ctx.fillStyle = cg; ctx.fill();
-    ctx.beginPath();
-    ptsC.forEach((x, i) => (i ? ctx.lineTo(sx(x), cYs[i] - 20 * sc) : ctx.moveTo(sx(x), cYs[i] - 20 * sc)));
-    for (let i = ptsC.length - 1; i >= 0; i--) ctx.lineTo(sx(ptsC[i]), cYs[i]);
-    ctx.closePath(); ctx.fillStyle = "#1b2536"; ctx.fill();
-    ctx.strokeStyle = "rgba(255,255,255,0.38)"; ctx.lineWidth = 3 * sc;
-    ctx.beginPath();
-    for (let x = Math.floor(x0 / 110) * 110; x < x1; x += 110) {
-      if (zoneC(x) > 0.02) continue;
-      ctx.moveTo(sx(x), sy(ceilY(x) - 10)); ctx.lineTo(sx(x + 50), sy(ceilY(x + 50) - 10));
-    }
-    ctx.stroke();
-    strokeRuns(ptsC, cYs, () => false, "rgba(255,59,74,0.18)", 12 * sc, "rgba(255,59,74,0.18)", 12 * sc);
-    strokeRuns(ptsC, cYs, () => false, "rgba(255,90,100,0.95)", 2.4 * sc, "rgba(255,90,100,0.95)", 2.4 * sc);
-  }
-
-  // ---- golv ----
   ctx.beginPath();
-  ptsF.forEach((x, i) => (i ? ctx.lineTo(sx(x), fYs[i]) : ctx.moveTo(sx(x), fYs[i])));
-  ctx.lineTo(sx(x1), Hs + 60); ctx.lineTo(sx(x0), Hs + 60); ctx.closePath();
-  const fg = ctx.createLinearGradient(0, sy(40), 0, Math.max(sy(40) + 50, Hs));
+  pts.forEach((x, i) => (i ? ctx.lineTo(sx(x), fYs[i]) : ctx.moveTo(sx(x), fYs[i])));
+  ctx.lineTo(sx(xb), Hs + 400); ctx.lineTo(sx(xa), Hs + 400); ctx.closePath();
+  const fg = ctx.createLinearGradient(0, sy(40), 0, Math.max(sy(40) + 50, sy(400)));
   fg.addColorStop(0, "#131b29"); fg.addColorStop(1, "#04060a");
   ctx.fillStyle = fg; ctx.fill();
   ctx.beginPath();
-  ptsF.forEach((x, i) => (i ? ctx.lineTo(sx(x), fYs[i]) : ctx.moveTo(sx(x), fYs[i])));
-  for (let i = ptsF.length - 1; i >= 0; i--) ctx.lineTo(sx(ptsF[i]), fYs[i] + 20 * sc);
+  pts.forEach((x, i) => (i ? ctx.lineTo(sx(x), fYs[i]) : ctx.moveTo(sx(x), fYs[i])));
+  for (let i = pts.length - 1; i >= 0; i--) ctx.lineTo(sx(pts[i]), fYs[i] + 20 * sc);
   ctx.closePath(); ctx.fillStyle = "#1c2738"; ctx.fill();
+
   ctx.strokeStyle = "rgba(255,255,255,0.38)"; ctx.lineWidth = 3 * sc;
   ctx.beginPath();
-  for (let x = Math.floor(x0 / 110) * 110; x < x1; x += 110) {
-    if (Math.abs(slopeOf(floorY, x)) > 1 || Math.abs(slopeOf(floorY, x + 50)) > 1) continue;
+  for (let x = Math.floor(xa / 110) * 110; x < xb; x += 110) {
+    if (Math.abs(slopeOf(x)) > 1 || Math.abs(slopeOf(x + 50)) > 1) continue;
     if (x > VEH[0].x0 - 40 && x < VEH[3].x1 + 20) continue;
     ctx.moveTo(sx(x), sy(floorY(x) + 10)); ctx.lineTo(sx(x + 50), sy(floorY(x + 50) + 10));
   }
   ctx.stroke();
-  const inZoneF = (x) => zoneF(x) > 0.5;
+  const inZone = (x) => zoneF(x) > 0.5;
   const underCars = (x) => x > VEH[0].x0 - 14 && x < VEH[VEH.length - 1].x1 + 14;   // bilarna täcker ytan
-  strokeRuns(ptsF, fYs, inZoneF, "rgba(62,224,255,0.18)", 12 * sc, "rgba(255,59,74,0.2)", 12 * sc, underCars);
-  strokeRuns(ptsF, fYs, inZoneF, "rgba(110,235,255,0.95)", 2.4 * sc, "rgba(255,90,100,0.95)", 2.4 * sc, underCars);
+  const underWall = (x) => x > WALL.x0 + 1 && x < WALL.xLow + 2;                    // rundeln ritas separat
+  const hide = (x) => underCars(x) || underWall(x);
+  strokeRuns(pts, fYs, inZone, "rgba(62,224,255,0.18)", 12 * sc, "rgba(255,59,74,0.2)", 12 * sc, hide);
+  strokeRuns(pts, fYs, inZone, "rgba(110,235,255,0.95)", 2.4 * sc, "rgba(255,90,100,0.95)", 2.4 * sc, hide);
 
-  // ---- gatlyktor och takarmaturer ----
+  // ---- gatlyktor ----
   ctx.globalCompositeOperation = "lighter";
-  for (let x = Math.floor(x0 / 520) * 520; x < x1; x += 520) {
-    if (zoneF(x) > 0.02) continue;
+  for (let x = Math.floor(xa / 520) * 520; x < xb; x += 520) {
+    if (zoneF(x) > 0.02 || x < START_X + 100 || x > END_X - 150) continue;
     const px = sx(x), gy = sy(floorY(x)), top = gy - 175 * sc;
     ctx.globalCompositeOperation = "source-over";
     ctx.strokeStyle = "#202b3c"; ctx.lineWidth = 5 * sc;
@@ -838,31 +869,15 @@ function drawRoad() {
     ctx.globalAlpha = 0.85; ctx.drawImage(glow.white, px + 26 * sc - 60 * sc, top - 14 * sc - 60 * sc, 120 * sc, 120 * sc);
     ctx.globalAlpha = 1;
   }
-  if (showCeil) {
-    for (let x = Math.floor(x0 / 340) * 340; x < x1; x += 340) {
-      if (zoneC(x) > 0.02) continue;
-      const px = sx(x), cy = sy(ceilY(x));
-      ctx.globalAlpha = 0.9; ctx.drawImage(glow.red, px - 70 * sc, cy - 30 * sc, 140 * sc, 100 * sc);
-      ctx.globalAlpha = 1;
-      ctx.globalCompositeOperation = "source-over";
-      ctx.fillStyle = "#ffd5d8"; ctx.fillRect(px - 16 * sc, cy + 2 * sc, 32 * sc, 4 * sc);
-      ctx.globalCompositeOperation = "lighter";
-    }
-  }
   ctx.globalCompositeOperation = "source-over";
 
   // ramp-varningsmarkering
-  for (let k = Math.floor((x0 - 1500) / 2700); k * 2700 + 1500 < x1; k++) {
+  for (let k = Math.floor((xa - 1500) / 2700); k * 2700 + 1500 < xb; k++) {
     const bx = k * 2700 + 1500;
-    if (bx + 270 < x0 || zoneF(bx + 135) > 0.3) continue;
-    chevrons(bx, 270, floorY, 1);
+    if (bx + 270 < xa || zoneF(bx + 135) > 0.3 || bx < START_X + 50 || bx > END_X - 400) continue;
+    chevrons(bx, 270);
   }
-  for (let k = Math.floor((x0 - 2500) / 3300); k * 3300 + 2500 < x1; k++) {
-    const bx = k * 3300 + 2500;
-    if (bx + 270 < x0 || zoneC(bx + 135) > 0.3) continue;
-    chevrons(bx, 270, ceilY, -1);
-  }
-  if (RAMP.x + 300 > x0 && RAMP.x < x1) chevrons(RAMP.x, RAMP.len, floorY, 1);
+  if (RAMP.x + 300 > xa && RAMP.x < xb) chevrons(RAMP.x, RAMP.len);
 }
 
 /* ---------- arenornas rekvisita ---------- */
@@ -958,15 +973,43 @@ function drawSign(x, text, color, sub) {
   ctx.restore();
 }
 
+// barriär i banans ändar, med varningsrandor (dir: 1 = slutet åt höger, -1 = starten åt vänster)
+function drawBarrier(x, dir, label) {
+  const px = sx(x);
+  if (px < -400 || px > W + 400) return;
+  const top = sy(-330), bot = sy(60), w = 170 * sc * dir;
+  ctx.save();
+  ctx.fillStyle = "#0b111b"; ctx.fillRect(Math.min(px, px + w), top, Math.abs(w), bot - top);
+  // varningsrandor längs framkanten
+  ctx.save();
+  ctx.beginPath(); ctx.rect(dir > 0 ? px : px - 24 * sc, top, 24 * sc, bot - top); ctx.clip();
+  ctx.fillStyle = "#ffd23f"; ctx.fillRect(px - 40 * sc, top, 80 * sc, bot - top);
+  ctx.fillStyle = "#14181f";
+  for (let y = top - 40 * sc; y < bot; y += 36 * sc) {
+    ctx.beginPath(); ctx.moveTo(px - 40 * sc, y); ctx.lineTo(px + 40 * sc, y + 28 * sc); ctx.lineTo(px + 40 * sc, y + 46 * sc); ctx.lineTo(px - 40 * sc, y + 18 * sc); ctx.closePath(); ctx.fill();
+  }
+  ctx.restore();
+  // röd neonkant
+  ctx.strokeStyle = "rgba(255,59,74,0.3)"; ctx.lineWidth = 12 * sc;
+  ctx.beginPath(); ctx.moveTo(px, top); ctx.lineTo(px, bot); ctx.stroke();
+  ctx.strokeStyle = "rgba(255,95,105,1)"; ctx.lineWidth = 2.4 * sc; ctx.stroke();
+  // text
+  ctx.translate(px + 96 * sc * dir, sy(-135)); ctx.rotate((-Math.PI / 2) * dir);
+  ctx.textAlign = "center"; ctx.textBaseline = "middle";
+  ctx.font = `800 ${34 * sc}px -apple-system, "Helvetica Neue", Arial, sans-serif`;
+  ctx.fillStyle = "rgba(255,255,255,0.8)"; ctx.fillText(label, 0, 0);
+  ctx.restore();
+}
+
 function drawWall() {
   const R = WALL.R, cx = WALL.x0, cy = -R, ro = R + 26;
-  if (sx(WALL.x1 + 120) < 0 || sx(WALL.x0 - 40) > W) return;
+  if (sx(WALL.xMax + 140) < 0 || sx(WALL.x0 - 40) > W) return;
   ctx.save();
-  ctx.beginPath(); ctx.rect(0, -400, W, sy(3) + 400); ctx.clip();
+  ctx.beginPath(); ctx.rect(0, -2000, W, sy(3) + 2000); ctx.clip();
 
-  // stålstomme bakom väggen
-  const xcol = cx + ro * Math.sin(WALL.th) + 12;
-  const ytop = -(WALL.h + 46);
+  // stålstomme bakom och under rundeln
+  const xcol = cx + ro + 14;
+  const ytop = WALL.lipY - 40;
   ctx.strokeStyle = "#56606c"; ctx.lineWidth = 2.2 * sc;
   ctx.beginPath();
   ctx.moveTo(sx(xcol), sy(0)); ctx.lineTo(sx(xcol), sy(ytop));
@@ -978,36 +1021,36 @@ function drawWall() {
   ctx.stroke();
   ctx.lineWidth = 1.4 * sc; ctx.strokeStyle = "#3d4650";
   ctx.beginPath();
-  for (let th = 0.25; th <= WALL.th + 0.01; th += 0.2) {
+  for (let th = 0.25; th <= WALL.thMax + 0.01; th += 0.2) {
     const px = cx + ro * Math.sin(th), py = cy + ro * Math.cos(th);
-    ctx.moveTo(sx(px), sy(py)); ctx.lineTo(sx(xcol), sy(Math.min(0, py + 40)));
+    ctx.moveTo(sx(px), sy(py)); ctx.lineTo(sx(xcol), sy(Math.min(0, py + 60)));
   }
   ctx.stroke();
 
   // betongskal
-  const N = 56;
+  const N = 64;
   ctx.beginPath();
-  for (let i = 0; i <= N; i++) { const th = (WALL.th * i) / N; ctx.lineTo(sx(cx + R * Math.sin(th)), sy(cy + R * Math.cos(th))); }
-  for (let i = N; i >= 0; i--) { const th = (WALL.th * i) / N; ctx.lineTo(sx(cx + ro * Math.sin(th)), sy(cy + ro * Math.cos(th))); }
+  for (let i = 0; i <= N; i++) { const th = (WALL.thMax * i) / N; ctx.lineTo(sx(cx + R * Math.sin(th)), sy(cy + R * Math.cos(th))); }
+  for (let i = N; i >= 0; i--) { const th = (WALL.thMax * i) / N; ctx.lineTo(sx(cx + ro * Math.sin(th)), sy(cy + ro * Math.cos(th))); }
   ctx.closePath();
-  const cg = ctx.createLinearGradient(0, sy(-WALL.h), 0, sy(0));
+  const cg = ctx.createLinearGradient(0, sy(WALL.lipY), 0, sy(0));
   cg.addColorStop(0, "#a4a8ad"); cg.addColorStop(1, "#4b5057");
   ctx.fillStyle = cg; ctx.fill();
   ctx.strokeStyle = "rgba(0,0,0,0.18)"; ctx.lineWidth = 1 * sc;
   ctx.beginPath();
-  for (let th = 0.1; th < WALL.th; th += 0.14) {
+  for (let th = 0.1; th < WALL.thMax; th += 0.14) {
     ctx.moveTo(sx(cx + R * Math.sin(th)), sy(cy + R * Math.cos(th))); ctx.lineTo(sx(cx + ro * Math.sin(th)), sy(cy + ro * Math.cos(th)));
   }
   ctx.stroke();
 
   // röd neonkant längs körytan
   ctx.beginPath();
-  for (let i = 0; i <= N; i++) { const th = (WALL.th * i) / N; ctx.lineTo(sx(cx + R * Math.sin(th)), sy(cy + R * Math.cos(th))); }
+  for (let i = 0; i <= N; i++) { const th = (WALL.thMax * i) / N; ctx.lineTo(sx(cx + R * Math.sin(th)), sy(cy + R * Math.cos(th))); }
   ctx.strokeStyle = "rgba(255,59,74,0.25)"; ctx.lineWidth = 14 * sc; ctx.stroke();
   ctx.strokeStyle = "rgba(255,95,105,1)"; ctx.lineWidth = 3 * sc; ctx.stroke();
   ctx.strokeStyle = "rgba(255,255,255,0.55)"; ctx.lineWidth = 2 * sc;
   ctx.beginPath();
-  for (let th = 0.05; th < WALL.th - 0.1; th += 0.16) {
+  for (let th = 0.05; th < WALL.thMax - 0.1; th += 0.16) {
     ctx.moveTo(sx(cx + (R + 9) * Math.sin(th)), sy(cy + (R + 9) * Math.cos(th)));
     ctx.lineTo(sx(cx + (R + 9) * Math.sin(th + 0.07)), sy(cy + (R + 9) * Math.cos(th + 0.07)));
   }
@@ -1015,7 +1058,7 @@ function drawWall() {
   ctx.restore();
   ctx.globalCompositeOperation = "lighter";
   ctx.globalAlpha = 0.7;
-  ctx.drawImage(glow.red, sx(WALL.x1) - 60 * sc, sy(-WALL.h) - 60 * sc, 120 * sc, 120 * sc);
+  ctx.drawImage(glow.red, sx(WALL.lipX) - 60 * sc, sy(WALL.lipY) - 60 * sc, 120 * sc, 120 * sc);
   ctx.globalAlpha = 1; ctx.globalCompositeOperation = "source-over";
 }
 
@@ -1035,20 +1078,23 @@ function drawCar() {
   const c = car;
   const ca = Math.cos(c.a), sa = Math.sin(c.a);
   const k = sc;
-  const sfn = c.s > 0 ? floorY : ceilY;
-  const surf = sfn(c.x);
+  const surf = floorY(c.x);
   const gap = Math.abs(surf - c.y);
-  if (gap < 160 && Math.abs(slopeOf(sfn, c.x)) < 2) {
+  if (gap < 160 && Math.abs(slopeOf(c.x)) < 2 && !c.arc) {
     ctx.globalCompositeOperation = "lighter";
     ctx.globalAlpha = clamp(1 - gap / 160, 0, 1) * (c.flying ? 0.9 : 0.45);
     ctx.drawImage(glow[c.flying ? "white" : "cyan"], sx(c.x) - 90 * k, sy(surf) - 24 * k, 180 * k, 48 * k);
     ctx.globalAlpha = 1; ctx.globalCompositeOperation = "source-over";
   }
 
+  // tunnrulle: bilen vrids runt sin längdaxel och syns uppifrån/underifrån (cos) i sidovy
+  let vr = Math.cos(c.roll);
+  if (Math.abs(vr) < 0.08) vr = vr < 0 ? -0.08 : 0.08;
+
   ctx.save();
   ctx.translate(sx(c.x), sy(c.y));
   // lokala axlar: x = framåt, y = mot hjulen
-  ctx.transform(c.faceVis * ca * k, c.faceVis * c.sVis * sa * k, -sa * k, c.sVis * ca * k, 0, 0);
+  ctx.transform(c.faceVis * ca * k, c.faceVis * vr * sa * k, -sa * k, vr * ca * k, 0, 0);
 
   const paint = PAINT[save.color] || PAINT[0];
 
@@ -1130,8 +1176,11 @@ function render() {
   drawRoad();
   drawWall();
   for (const v of VEH) drawVehicle(v);
+  drawBarrier(START_X, -1, "START");
+  drawBarrier(END_X, 1, "BANANS SLUT");
   drawSign(4380, "BILHOPPET", "#3ee0ff", "Boost + ramp = flyg över bilarna");
-  drawSign(8150, "VÄGGEN", "#ff5a64", "Klättra upp, hoppa ut och snurra");
+  drawSign(8150, "VÄGGEN", "#ff5a64", "Boost upp i rundeln - loopa tillbaka");
+  drawSign(END_X - 330, "SLUT", "#ffd23f", "Vänd om - längre går det inte");
   drawParticles(false);
   drawCar();
   drawParticles(true);
@@ -1143,17 +1192,22 @@ function render() {
    HUD / MENY
    ===================================================================== */
 const hud = $("#hud"), touchUI = $("#touch"), menu = $("#menu");
-let hudSpd = -1, hudCeil = null, hudFly = null, hudAir = "";
+let hudSpd = -1, hudArea = "", hudFly = null, hudAir = "";
+function areaName(x) {
+  if (x >= ZONES[0].a - 100 && x <= ZONES[0].b) return "BILHOPPET";
+  if (x >= ZONES[1].a - 100 && x <= ZONES[1].b) return "VÄGGEN";
+  return "SANDLÅDA";
+}
 function updateHud() {
   const c = car;
   const kmh = Math.round(Math.hypot(c.vx, c.vy) * 0.18);
   if (kmh !== hudSpd) { hudSpd = kmh; $("#spd").textContent = kmh; }
-  const ceil = c.s < 0;
-  if (ceil !== hudCeil) { hudCeil = ceil; const m = $("#modeChip"); m.textContent = ceil ? "TAK" : "GOLV"; m.classList.toggle("ceil", ceil); }
+  const area = areaName(c.x);
+  if (area !== hudArea) { hudArea = area; $("#modeChip").textContent = area; }
   if (c.flying !== hudFly) { hudFly = c.flying; $("#flyChip").hidden = !c.flying; }
   let txt = "";
   if (air && !c.grounded) {
-    const fl = Math.floor(air.spinTotal / TAU + 0.12);
+    const fl = airFlips(air);
     if (air.maxH > 120 || fl > 0 || air.over.size) txt = `${fl ? "SNURR ×" + fl + "  ·  " : ""}${Math.round(air.maxH * 0.05)} m`;
   }
   if (txt !== hudAir) { hudAir = txt; const ch = $("#stuntChip"); ch.textContent = txt; ch.hidden = !txt; }
@@ -1216,7 +1270,7 @@ $("#mute").addEventListener("click", () => { initAudio(); setMuted(!save.muted);
 /* =====================================================================
    INPUT
    ===================================================================== */
-const holds = { left: new Set(), right: new Set(), fly: new Set(), boost: new Set(), flip: new Set(), spin: new Set() };
+const holds = { left: new Set(), right: new Set(), fly: new Set(), boost: new Set(), spin: new Set() };
 const kb = { left: false, right: false, fly: false, boost: false };
 function syncInput() {
   inp.left = holds.left.size > 0 || kb.left;
@@ -1225,7 +1279,7 @@ function syncInput() {
   inp.boost = holds.boost.size > 0 || kb.boost;
   document.querySelectorAll(".btn").forEach((b) => {
     const a = b.dataset.act;
-    const on = (a === "left" && inp.left) || (a === "right" && inp.right) || (a === "fly" && inp.fly) || (a === "boost" && inp.boost) || (a === "flip" && holds.flip.size > 0) || (a === "spin" && holds.spin.size > 0);
+    const on = (a === "left" && inp.left) || (a === "right" && inp.right) || (a === "fly" && inp.fly) || (a === "boost" && inp.boost) || (a === "spin" && holds.spin.size > 0);
     b.classList.toggle("on", on);
   });
 }
@@ -1241,7 +1295,6 @@ document.querySelectorAll(".btn").forEach((b) => {
     initAudio();
     try { b.setPointerCapture(e.pointerId); } catch (_) {}
     holds[act].add(e.pointerId);
-    if (act === "flip") inp.flipQ = true;
     if (act === "spin") inp.spinQ = true;
     syncInput();
   });
@@ -1257,19 +1310,16 @@ let lastTap = 0;
 document.addEventListener("touchend", (e) => { const n = Date.now(); if (n - lastTap < 350 && !e.target.closest("#menu")) e.preventDefault(); lastTap = n; }, { passive: false });
 
 const KEYMAP = { ArrowLeft: "left", a: "left", A: "left", ArrowRight: "right", d: "right", D: "right", ArrowUp: "fly", w: "fly", W: "fly", " ": "fly", Shift: "boost" };
-const isFlipKey = (k) => k === "f" || k === "F" || k === "ArrowDown" || k === "s" || k === "S";
-const isSpinKey = (k) => k === "e" || k === "E" || k === "x" || k === "X";
+const isSpinKey = (k) => k === "e" || k === "E" || k === "x" || k === "X" || k === "ArrowDown" || k === "s" || k === "S";
 window.addEventListener("keydown", (e) => {
   if (e.repeat) return;
   if (e.key === "Escape" || e.key === "p" || e.key === "P") { paused ? (started && closeMenu()) : openMenu(); return; }
   if (paused) { if (e.key === "Enter") closeMenu(); return; }
-  if (isFlipKey(e.key)) { inp.flipQ = true; holds.flip.add(-1); syncInput(); return; }
   if (isSpinKey(e.key)) { inp.spinQ = true; holds.spin.add(-2); syncInput(); return; }
   const k = KEYMAP[e.key];
   if (k) { kb[k] = true; e.preventDefault(); syncInput(); }
 });
 window.addEventListener("keyup", (e) => {
-  if (isFlipKey(e.key)) { holds.flip.delete(-1); syncInput(); return; }
   if (isSpinKey(e.key)) { holds.spin.delete(-2); syncInput(); return; }
   const k = KEYMAP[e.key];
   if (k) { kb[k] = false; syncInput(); }
@@ -1277,34 +1327,6 @@ window.addEventListener("keyup", (e) => {
 window.addEventListener("blur", () => { clearInput(); if (started && !paused) openMenu(); });
 document.addEventListener("visibilitychange", () => { if (document.hidden) { clearInput(); if (started && !paused) openMenu(); } else if (actx && actx.state === "suspended" && !paused) actx.resume(); });
 window.addEventListener("pagehide", store);
-
-/* =====================================================================
-   LOOP
-   ===================================================================== */
-function resize() {
-  DPR = Math.min(window.devicePixelRatio || 1, 2);
-  W = window.innerWidth; Hs = window.innerHeight;
-  canvas.width = Math.round(W * DPR); canvas.height = Math.round(Hs * DPR);
-  baseSc = Hs / VIEW_H;
-}
-window.addEventListener("resize", resize);
-window.addEventListener("orientationchange", () => setTimeout(resize, 200));
-
-let last = performance.now();
-let saveT = 0;
-function frame(now) {
-  const dt = Math.min(0.033, (now - last) / 1000);
-  last = now;
-  if (!paused) {
-    update(dt / 2); update(dt / 2);
-    updateHud();
-    saveT += dt; if (saveT > 6) { saveT = 0; store(); }
-  } else {
-    time += dt; camX += 40 * dt;
-  }
-  render();
-  requestAnimationFrame(frame);
-}
 
 /* =====================================================================
    OFFLINE (service worker + status i menyn)
@@ -1334,13 +1356,44 @@ async function checkOffline() {
 }
 if ("serviceWorker" in navigator && "caches" in window && location.protocol !== "file:") {
   setOffline("loading");
+  const hadController = !!navigator.serviceWorker.controller;
   navigator.serviceWorker.addEventListener("message", (e) => { if (e.data && e.data.type === "offline-ready") checkOffline().then((ok) => ok && setOffline("ready")); });
+  // ny version av appen har tagit över: ladda om medan man fortfarande står i menyn
+  navigator.serviceWorker.addEventListener("controllerchange", () => { if (hadController && !started) location.reload(); });
   navigator.serviceWorker.register("sw.js").then(() => navigator.serviceWorker.ready)
     .then(() => checkOffline()).then((ok) => setOffline(ok ? "ready" : "loading"))
     .catch(() => setOffline("unsupported"));
-  // om första nedladdningen dröjer: kolla igen en stund
   let tries = 0;
   const t = setInterval(() => { checkOffline().then((ok) => { if (ok) { setOffline("ready"); clearInterval(t); } }); if (++tries > 20) clearInterval(t); }, 1500);
+}
+
+/* =====================================================================
+   LOOP
+   ===================================================================== */
+function resize() {
+  DPR = Math.min(window.devicePixelRatio || 1, 2);
+  W = window.innerWidth; Hs = window.innerHeight;
+  canvas.width = Math.round(W * DPR); canvas.height = Math.round(Hs * DPR);
+  baseSc = Hs / VIEW_H;
+}
+window.addEventListener("resize", resize);
+window.addEventListener("orientationchange", () => setTimeout(resize, 200));
+
+let last = performance.now();
+let saveT = 0;
+function frame(now) {
+  const dt = Math.min(0.033, (now - last) / 1000);
+  last = now;
+  if (!paused) {
+    update(dt / 2); update(dt / 2);
+    updateHud();
+    saveT += dt; if (saveT > 6) { saveT = 0; store(); }
+  } else {
+    time += dt;
+    if (!started) { camX += 40 * dt; if (camX > END_X - 600) camX = START_X + 300; }   // menybakgrunden rullar långsamt
+  }
+  render();
+  requestAnimationFrame(frame);
 }
 
 resize();
@@ -1350,5 +1403,5 @@ openMenu();
 requestAnimationFrame(frame);
 
 // för test
-window.__delta = { car, inp, parts, floorY, ceilY, update, resetCar, VEH, WALL, RAMP, get paused() { return paused; }, get air() { return air; }, get result() { return lastResult; } };
+window.__delta = { setStarted(v) { started = v; }, car, inp, parts, floorY, update, resetCar, VEH, WALL, RAMP, START_X, END_X, get paused() { return paused; }, get air() { return air; }, get result() { return lastResult; } };
 })();
