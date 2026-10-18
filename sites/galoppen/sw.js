@@ -1,7 +1,7 @@
 /* Galoppen - service worker: laddar ned hela spelet så att det går att spela utan nät
    och startar från hemskärmen. Nät först (alltid senaste versionen när du är online,
    med 3 s tidsgräns) och cache som reserv. Höj VERSION för att tvinga omladdning av allt. */
-const VERSION = "galoppen-v1";
+const VERSION = "galoppen-v2";
 const ASSETS = [
   "./", "index.html", "style.css", "art.js", "items.js", "scene.js", "audio.js", "game.js", "manifest.webmanifest",
   "icon.svg", "icon-192.png", "icon-512.png", "icon-maskable-512.png", "apple-touch-icon.png", "og.png",
