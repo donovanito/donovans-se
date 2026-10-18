@@ -26,5 +26,9 @@
   "delta": {
     "host": "delta.donovans.se",
     "dir": "webroots/c4f603b4/"
+  },
+  "galoppen": {
+    "host": "galoppen.donovans.se",
+    "dir": "webroots/da9f248d/"
   }
 }
