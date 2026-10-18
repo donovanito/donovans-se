@@ -1304,10 +1304,25 @@ document.querySelectorAll(".btn").forEach((b) => {
   b.addEventListener("lostpointercapture", up);
   b.addEventListener("contextmenu", (e) => e.preventDefault());
 });
-document.addEventListener("touchmove", (e) => { if (!e.target.closest("#menu")) e.preventDefault(); }, { passive: false });
-document.addEventListener("gesturestart", (e) => e.preventDefault());
+// iPad/iPhone: stäng av dubbeltryck-zoom och nyp-zoom helt (Safari ignorerar user-scalable=no)
+const inMenu = (e) => !!(e.target && e.target.closest && e.target.closest("#menu"));
+const isRoundBtn = (e) => !!(e.target && e.target.closest && e.target.closest("button.round"));
+const stop = (e) => { if (e.cancelable) e.preventDefault(); };
+// 1) spelknappar och spelytan: inga webbläsargester alls (pointer-händelserna påverkas inte)
+document.addEventListener("touchstart", (e) => {
+  if (e.touches.length > 1) { stop(e); return; }               // nyp
+  if (!inMenu(e) && !isRoundBtn(e)) stop(e);
+}, { passive: false });
+document.addEventListener("touchmove", (e) => { if (!inMenu(e) || e.touches.length > 1) stop(e); }, { passive: false });
+// 2) snabbt dubbeltryck var som helst utom i menyn (där klick måste gå fram) och på HUD-knapparna
 let lastTap = 0;
-document.addEventListener("touchend", (e) => { const n = Date.now(); if (n - lastTap < 350 && !e.target.closest("#menu")) e.preventDefault(); lastTap = n; }, { passive: false });
+document.addEventListener("touchend", (e) => {
+  const n = Date.now();
+  if (n - lastTap < 500 && !inMenu(e) && !isRoundBtn(e)) stop(e);
+  lastTap = n;
+}, { passive: false });
+// 3) Safaris egna gest-händelser och dubbelklick
+for (const ev of ["gesturestart", "gesturechange", "gestureend", "dblclick"]) document.addEventListener(ev, stop, { passive: false });
 
 const KEYMAP = { ArrowLeft: "left", a: "left", A: "left", ArrowRight: "right", d: "right", D: "right", ArrowUp: "fly", w: "fly", W: "fly", " ": "fly", Shift: "boost" };
 const isSpinKey = (k) => k === "e" || k === "E" || k === "x" || k === "X" || k === "ArrowDown" || k === "s" || k === "S";
