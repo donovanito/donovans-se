@@ -73,17 +73,18 @@ const Art = (() => {
       L.push([c[i][0] - ty * w, c[i][1] + tx * w]);
       R.push([c[i][0] + ty * w, c[i][1] - tx * w]);
     }
+    // själva kroppen som en sluten figur, ändarna som egna cirklar (annars kan fyllningen få hål)
+    ctx.fillStyle = fill;
     ctx.beginPath();
     ctx.moveTo(L[0][0], L[0][1]);
     for (let i = 1; i < L.length; i++) ctx.lineTo(L[i][0], L[i][1]);
-    const e = c[c.length - 1], we = ws[ws.length - 1] / 2;
-    ctx.arc(e[0], e[1], we, 0, TAU);
-    ctx.moveTo(R[R.length - 1][0], R[R.length - 1][1]);
-    for (let i = R.length - 2; i >= 0; i--) ctx.lineTo(R[i][0], R[i][1]);
-    const s = c[0], ws0 = ws[0] / 2;
-    ctx.arc(s[0], s[1], ws0, 0, TAU);
-    ctx.fillStyle = fill;
+    for (let i = R.length - 1; i >= 0; i--) ctx.lineTo(R[i][0], R[i][1]);
+    ctx.closePath();
     ctx.fill();
+    const e = c[c.length - 1], we = ws[ws.length - 1] / 2;
+    ctx.beginPath(); ctx.arc(e[0], e[1], we, 0, TAU); ctx.fill();
+    const s0 = c[0], ws0 = ws[0] / 2;
+    ctx.beginPath(); ctx.arc(s0[0], s0[1], ws0, 0, TAU); ctx.fill();
   }
 
   /** Rör utan rundade ändar (stövelskaft). */
