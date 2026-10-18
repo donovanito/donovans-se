@@ -1,0 +1,141 @@
+<!doctype html>
+<html lang="sv">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<title>Galoppen</title>
+<meta name="description" content="Rid hinderbanor, samla mynt, sköt din häst och handla i Horse and Hound.">
+<meta name="robots" content="noindex">
+<meta name="theme-color" content="#3aa8ff">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Galoppen">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta property="og:title" content="Galoppen">
+<meta property="og:description" content="Hästspel: rid hinderbanor, samla mynt och sköt din häst.">
+<meta property="og:image" content="https://galoppen.donovans.se/og.png">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<canvas id="c" aria-label="Galoppen"></canvas>
+
+<!-- ======== HUD i ridläge ======== -->
+<div id="hud" hidden>
+  <div class="hud-l">
+    <div class="chip"><i class="coin"></i><b id="hCoins">0</b></div>
+    <div class="chip"><small>HINDER</small><b id="hFence">1/8</b></div>
+    <div class="chip" id="hFaultChip"><small>FEL</small><b id="hFaults">0</b></div>
+    <div class="chip"><small>TID</small><b id="hTime">0.0</b></div>
+    <div class="chip pts"><small>POÄNG</small><b id="hScore">0</b></div>
+  </div>
+  <div class="hud-r">
+    <button class="round" id="hMute" aria-label="Ljud av/på"></button>
+    <button class="round" id="hPause" aria-label="Paus"><svg viewBox="0 0 24 24"><path d="M8 5v14M16 5v14"/></svg></button>
+  </div>
+</div>
+<div id="track" hidden><div id="trackBar"></div><span class="lbl s">START</span><span class="lbl f">MÅL</span></div>
+<div id="gaitChip" class="chip gait" hidden><b id="gaitName">TRAV</b><span class="pips"><i></i><i></i><i></i></span></div>
+<div id="banner" hidden></div>
+
+<!-- ======== Touchkontroller ======== -->
+<div id="touch" hidden>
+  <div class="gaitbtns">
+    <div class="btn" data-act="slow" aria-label="Sakta ned"><svg viewBox="0 0 24 24"><path d="M15 4 L6 12 L15 20"/></svg><span>SAKTA</span></div>
+    <div class="btn" data-act="fast" aria-label="Öka tempo"><svg viewBox="0 0 24 24"><path d="M9 4 L18 12 L9 20"/></svg><span>SKYNDA</span></div>
+  </div>
+  <div class="btn jump" data-act="jump" aria-label="Hoppa"><svg viewBox="0 0 24 24"><path d="M4 18 Q12 -2 20 18"/></svg><span>HOPPA</span></div>
+</div>
+
+<!-- ======== Huvudmeny ======== -->
+<section id="menu" class="screen center">
+  <div class="topright">
+    <div class="coinpill"><i class="coin"></i><b id="mCoins">0</b></div>
+    <button class="round" id="mMute" aria-label="Ljud av/på"></button>
+  </div>
+  <div class="logo">
+    <svg class="shoe" viewBox="0 0 64 64" aria-hidden="true"><path d="M14 52 C6 34 8 12 32 10 C56 12 58 34 50 52 L40 52 C44 38 44 24 32 22 C20 24 20 38 24 52 Z" fill="#ffd23f" stroke="#c98700" stroke-width="3" stroke-linejoin="round"/><circle cx="14" cy="38" r="2.4" fill="#c98700"/><circle cx="18" cy="26" r="2.4" fill="#c98700"/><circle cx="50" cy="38" r="2.4" fill="#c98700"/><circle cx="46" cy="26" r="2.4" fill="#c98700"/></svg>
+    <h1>Galoppen</h1>
+    <p>Rid hinderbanor, samla mynt och sköt din häst</p>
+  </div>
+  <nav class="mainmenu">
+    <button class="menubtn b-ride" data-go="classes"><span class="ic">🏇</span><span class="tx"><b>Ridbanan</b><small>Tävla och samla mynt</small></span></button>
+    <button class="menubtn b-stable" data-go="stable"><span class="ic">🐴</span><span class="tx"><b>Stallet</b><small>Borsta, mata och klä på</small></span></button>
+    <button class="menubtn b-shop" data-go="shop"><span class="ic">🛍️</span><span class="tx"><b>Horse and Hound</b><small>Handla tillbehör</small></span></button>
+    <button class="menubtn b-rec" data-go="records"><span class="ic">🏆</span><span class="tx"><b>Rekord</b><small>Dina bästa ritter</small></span></button>
+  </nav>
+  <div class="installrow">
+    <button class="pillbtn" id="installBtn" hidden>📲 Lägg till på hemskärmen</button>
+    <p class="hint" id="iosHint" hidden>Installera: tryck på <b>Dela</b> <span class="share">⬆︎</span> och välj <b>Lägg till på hemskärmen</b>.</p>
+    <p class="hint" id="offlineHint" hidden></p>
+  </div>
+</section>
+
+<!-- ======== Klassval ======== -->
+<section id="classes" class="screen page">
+  <header class="topbar"><button class="back" data-go="menu">‹ Meny</button><h2>Ridbanan</h2><div class="coinpill"><i class="coin"></i><b class="cv">0</b></div></header>
+  <div class="content">
+    <div class="formcard" id="formCard"></div>
+    <div class="cards" id="classCards"></div>
+    <label class="toggle"><input type="checkbox" id="guideToggle"><span>Visa hjälpmarkering för hopp</span></label>
+  </div>
+</section>
+
+<!-- ======== Stallet ======== -->
+<section id="stable" class="screen side">
+  <header class="topbar"><button class="back" data-go="menu">‹ Meny</button><h2>Stallet</h2><div class="coinpill"><i class="coin"></i><b class="cv">0</b></div></header>
+  <aside class="panel">
+    <div class="tabs" id="stableTabs">
+      <button data-tab="care" class="on">Vård</button>
+      <button data-tab="tack">Utrustning</button>
+      <button data-tab="rider">Ryttaren</button>
+    </div>
+    <div class="pbody" id="stableBody"></div>
+  </aside>
+</section>
+
+<!-- ======== Butiken ======== -->
+<section id="shop" class="screen side">
+  <header class="topbar"><button class="back" data-go="menu">‹ Meny</button><h2 aria-label="Horse and Hound"></h2><div class="coinpill"><i class="coin"></i><b class="cv">0</b></div></header>
+  <aside class="panel">
+    <div class="tabs" id="shopTabs">
+      <button data-tab="horse" class="on">Till hästen</button>
+      <button data-tab="rider">Till ryttaren</button>
+      <button data-tab="food">Foder</button>
+    </div>
+    <div class="pbody" id="shopBody"></div>
+  </aside>
+</section>
+
+<!-- ======== Rekord ======== -->
+<section id="records" class="screen page">
+  <header class="topbar"><button class="back" data-go="menu">‹ Meny</button><h2>Rekord</h2><div class="coinpill"><i class="coin"></i><b class="cv">0</b></div></header>
+  <div class="content">
+    <div class="tabs flat" id="recTabs"></div>
+    <div class="reccols" id="recBody"></div>
+    <p class="hint">Tidsrekord sätts bara på felfria rundor.</p>
+  </div>
+</section>
+
+<!-- ======== Resultat och paus ======== -->
+<div id="result" class="overlay" hidden></div>
+<div id="pause" class="overlay" hidden>
+  <div class="card">
+    <h2>Paus</h2>
+    <button class="big go" id="pResume">Fortsätt</button>
+    <button class="big alt" id="pRetry">Börja om banan</button>
+    <button class="big alt" id="pQuit">Lämna banan</button>
+  </div>
+</div>
+<div id="toast" hidden></div>
+<div id="rotate"><div><svg viewBox="0 0 48 48"><rect x="14" y="4" width="20" height="40" rx="4"/><path d="M6 24 A18 18 0 0 0 20 42"/></svg><p>Vrid telefonen. Ridbanan spelas i liggande läge.</p></div></div>
+
+<script src="art.js"></script>
+<script src="items.js"></script>
+<script src="scene.js"></script>
+<script src="audio.js"></script>
+<script src="game.js"></script>
+</body>
+</html>
