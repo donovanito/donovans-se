@@ -8,7 +8,7 @@ https://galoppen.donovans.se (`webroots/da9f248d/`, se `sites.json`).
 | Meny | Innehåll |
 |---|---|
 | Ridbanan | Fyra klasser (80, 95, 110, 130 cm). Nästa klass låses upp när man kommer 1-3. |
-| Stallet | Vård (borsta, mata), hästens utrustning, ryttaren (hjälm, jacka, byxor, stövlar, utseende). |
+| Stallet | Vård (borsta, mata), hästens utrustning och päls (brun, fux, skimmel, svart, isabell), ryttaren (hjälm, jacka, byxor, stövlar, utseende). |
 | Horse and Hound | Butiken. Prova på hästen innan köp. Utrustning, kläder och foder. |
 | Rekord | Topp-3 på poäng och på tid, per klass och totalt, med datum. Tid räknas bara för felfria rundor. |
 
