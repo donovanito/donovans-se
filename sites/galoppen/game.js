@@ -22,7 +22,7 @@
       equip: Object.assign({}, Items.DEFAULT_EQUIP),
       look: { skin: Items.SKINS[1], hair: Items.HAIRS[3].c, style: "ponytail" },
       food: { carrot: 2, apple: 1, oats: 0 },
-      horse: { energy: 82, shine: 55, ts: Date.now() },
+      horse: { energy: 82, shine: 55, ts: Date.now(), coat: "bay" },
       unlocked: 1,
       rosettes: { blue: 0, red: 0, yellow: 0, green: 0 },
       records: {},
@@ -41,7 +41,8 @@
     s.equip = Object.assign(Object.assign({}, Items.DEFAULT_EQUIP), raw.equip || {});
     s.look = Object.assign(defaults().look, raw.look || {});
     s.food = Object.assign({ carrot: 0, apple: 0, oats: 0 }, raw.food || {});
-    s.horse = Object.assign({ energy: 80, shine: 50, ts: Date.now() }, raw.horse || {});
+    s.horse = Object.assign({ energy: 80, shine: 50, ts: Date.now(), coat: "bay" }, raw.horse || {});
+    if (!Art.COATS[s.horse.coat]) s.horse.coat = "bay";
     s.rosettes = Object.assign({ blue: 0, red: 0, yellow: 0, green: 0 }, raw.rosettes || {});
     s.settings = Object.assign({ mute: false, guides: true }, raw.settings || {});
     s.stats = Object.assign({ rides: 0 }, raw.stats || {});
@@ -154,6 +155,7 @@
       cloth: { helmet: it(e.helmet), jacket: it(e.jacket), breeches: it(e.breeches), boots: it(e.boots) },
     };
   }
+  const horseCoat = () => Art.COATS[S.horse.coat] || Art.COATS.bay;
   function tackData(prev) {
     const e = Object.assign({}, S.equip, prev || {});
     const n = (id) => { const i = Items.byId[id]; return i && !i.none ? i : null; };
@@ -216,7 +218,7 @@
     const g = Art.GAITS[mode];
     const phase = (idle.t * v * g.stance) / (2 * g.A);
     const hx = vW * (vW > vH ? 0.2 : 0.5);
-    Art.drawHorse(ctx, { x: hx, y: gy + 6, scale: 1.1, t: idle.t, mode, phase, flow: 0.7, tack: tackData(), rider: riderData(), shine: S.horse.shine / 100, blink: idle.blink > 0 });
+    Art.drawHorse(ctx, { x: hx, y: gy + 6, scale: 1.1, t: idle.t, mode, phase, flow: 0.7, coat: horseCoat(), tack: tackData(), rider: riderData(), shine: S.horse.shine / 100, blink: idle.blink > 0 });
     Scene.drawForeground(ctx, vW, vH, gy, menuCam, idle.t);
   }
 
@@ -253,7 +255,7 @@
     ctx.translate(-lx, -ly);
     const care = opts.care;
     Art.drawHorse(ctx, {
-      x: 0, y: 0, scale: 1, t: idle.t, mode: "stand", phase: 0, flow: 0.15 + Math.sin(idle.t * 0.8) * 0.1,
+      x: 0, y: 0, scale: 1, t: idle.t, mode: "stand", phase: 0, coat: horseCoat(), flow: 0.15 + Math.sin(idle.t * 0.8) * 0.1,
       tack: care ? {} : tackData(opts.prev), rider: care ? null : riderData(opts.prev), stableMode: care,
       shine: S.horse.shine / 100, headDown: idle.headDown, blink: idle.blink > 0, ear: Math.max(0, idle.ear) * 0.5, mouth: idle.eat ? Math.abs(Math.sin(idle.t * 9)) : 0,
       toss: 0, lookUp: care ? 0 : 0.2, noShadow: false, shadowAlpha: 0.3,
@@ -446,11 +448,15 @@
       const group = stableTab === "tack" ? "horse" : "rider";
       const slots = Items.SLOTS[group].slice();
       if (group === "rider") slots.push({ id: "look", label: "Utseende" });
+      else slots.push({ id: "coat", label: "Päls" });
       const key = stableTab;
       if (!slots.find((s) => s.id === stableSlot[key])) stableSlot[key] = slots[0].id;
       const cur = stableSlot[key];
       let html = `<div class="chips">${slots.map((s) => `<button data-slot="${s.id}" class="${s.id === cur ? "on" : ""}">${s.label}</button>`).join("")}</div>`;
-      if (cur === "look") {
+      if (cur === "coat") {
+        html += `<div class="grid">${Object.keys(Art.COATS).map((k) => `<button class="item ${S.horse.coat === k ? "eq sel" : ""}" data-coat="${k}"><div class="sw" style="background:linear-gradient(135deg, ${Art.COATS[k].hi}, ${Art.COATS[k].base} 55%, ${Art.COATS[k].lo})"></div><span>${Art.COATS[k].name}</span></button>`).join("")}</div>
+          <p class="note">Välj färg på ${HORSE_NAME}. Det är gratis.</p>`;
+      } else if (cur === "look") {
         html += `<h4>Hudton</h4><div class="dots">${Items.SKINS.map((c) => `<button data-skin="${c}" class="${S.look.skin === c ? "on" : ""}" style="background:${c}" aria-label="Hudton"></button>`).join("")}</div>
           <h4>Hårfärg</h4><div class="dots">${Items.HAIRS.map((h) => `<button data-hair="${h.c}" class="${S.look.hair === h.c ? "on" : ""}" style="background:${h.c}" aria-label="${h.n}"></button>`).join("")}</div>
           <h4>Frisyr</h4><div class="chips">${Items.HAIR_STYLES.map((h) => `<button data-style="${h.id}" class="${S.look.style === h.id ? "on" : ""}">${h.n}</button>`).join("")}</div>
@@ -1261,7 +1267,7 @@
     const toss = R.state === "refuse" ? Math.max(0, Math.sin(R.stateT * 9)) * (R.stateT < 1.4 ? 1 : 0) : 0;
     Art.drawHorse(ctx, {
       x: R.x, y: gy - R.y + shk, scale: sc, t, mode: R.state === "refuse" ? "stand" : R.mode, phase: R.phase, air: R.air ? 1 : 0, u, lift: R.y,
-      flow: clamp(R.v / 470, 0, 1) * 0.9 + 0.1, tack: tackData(), rider: riderData(), shine: S.horse.shine / 100, blink: Math.sin(t * 1.3) > 0.985, toss,
+      flow: clamp(R.v / 470, 0, 1) * 0.9 + 0.1, coat: horseCoat(), tack: tackData(), rider: riderData(), shine: S.horse.shine / 100, blink: Math.sin(t * 1.3) > 0.985, toss,
       ear: R.v > 250 ? 0.3 : 0,
     });
 
@@ -1421,6 +1427,7 @@
       const it = Items.byId[t.dataset.equip];
       S.equip[it.slot] = it.id; save(); Sfx.play("equip"); renderStable(); return;
     }
+    if (t.dataset.coat) { S.horse.coat = t.dataset.coat; save(); Sfx.play("equip"); renderStable(); return; }
     if (t.dataset.skin) { S.look.skin = t.dataset.skin; save(); Sfx.play("equip"); renderStable(); return; }
     if (t.dataset.hair) { S.look.hair = t.dataset.hair; save(); Sfx.play("equip"); renderStable(); return; }
     if (t.dataset.style) { S.look.style = t.dataset.style; save(); Sfx.play("equip"); renderStable(); return; }
