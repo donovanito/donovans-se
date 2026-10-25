@@ -560,7 +560,7 @@ const Scene = (() => {
         ctx.closePath(); ctx.fill();
         ctx.save();
         ctx.translate((pa[0] + pb[0]) / 2, (pa[1] + pb[1]) / 2 - hgt + 22);
-        ctx.rotate(Math.atan2(pb[1] - pa[1], pb[0] - pa[0]) * -1 + Math.PI);
+        ctx.rotate(Math.atan2(pa[1] - pb[1], pa[0] - pb[0])); // följer banderollens lutning (stiger åt höger)
         ctx.fillStyle = "#fff"; ctx.font = "900 22px system-ui, sans-serif"; ctx.textAlign = "center"; ctx.textBaseline = "middle";
         ctx.fillText(label, 0, 1);
         ctx.restore();

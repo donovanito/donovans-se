@@ -811,16 +811,31 @@
     f.refused = true; R.refF = f;
     R.air = false; R.y = 0;
     Sfx.play("refuse");
+    // hästen bromsar in och backar en bit så att nosen stannar före stängerna (inte genom hindret)
+    const railX = Math.min(...f.rails.map((r) => r.x));
+    const to = Math.min(R.x, railX - HFX - 92);
+    R.recoil = { from: R.x, to, v0: R.v, dur: clamp((R.x - to) / 130, 0.25, 0.5), t: 0 };
+    R.v = 0;
+    R.backStarted = false;
+    // vägran i en kombination: hela kombinationen ska hoppas om, så hästen backar före första hindret
+    const group = R.course.fences.filter((g) => g.num === f.num);
+    const first = group[0];
+    if (group.length > 1 && f !== first) {
+      group.slice(0, group.indexOf(f)).forEach((g) => {
+        if (g.done) { R.done--; R.score -= g.pts || 0; if (g.wasClean) R.clean--; if (g.wasPerfect) R.perfects--; }
+        g.done = false; g.uMid = null; g.q = 0; g.fault = false; g.pts = 0; g.wasClean = false; g.wasPerfect = false;
+        g.rails.forEach((r) => { r.fall = null; }); // banpersonalen bygger upp hindret
+      });
+      updateHud(true);
+    }
     if (R.refusals >= 3) {
       R.out = true; R.state = "finish"; R.stateT = 0; R.endClock = R.t;
-      popup("Utesluten!", "#ffb0b0", true);
-      banner("Utesluten", "3 vägringar");
+      banner("Utesluten", "Tredje vägran");
       Sfx.play("sad");
       return;
     }
-    popup("Vägran! +4 fel", "#ffb0b0", true);
-    banner("Vägran!", R.refusals === 2 ? "Nästa vägran = utesluten" : "Ta nytt tag");
-    R.backFrom = R.x; R.backTo = Math.max(-200, f.x - 340);
+    banner("Vägran!", "+4 fel. " + (group.length > 1 && f !== first ? "Hoppa om kombinationen" : R.refusals === 2 ? "Nästa vägran = utesluten" : "Ta nytt tag"));
+    R.backTo = Math.max(-200, first.x - 340);
   }
 
   function collide(dt) {
@@ -828,6 +843,16 @@
     const px = [R.x + HFX, R.x + HRX];
     const py = R.air ? R.y : 0;
     const prev = R.prevX;
+    // uteblivet hopp: hästen vägrar strax före stängerna (efter sista möjliga avhoppet)
+    if (!R.air && R.state === "run" && R.cool <= 0 && R.jumpBuf <= 0) {
+      const stopD = clamp(R.v * 0.1, 18, 48);
+      for (const f of R.course.fences) {
+        if (f.type === "vatten" || f.x - R.x > 300 || f.x + f.w < R.x - 100) continue;
+        for (const r of f.rails) {
+          if (!r.fall && px[0] >= r.x - stopD && px[0] < r.x + 5) { refuse(f); return; }
+        }
+      }
+    }
     for (const f of R.course.fences) {
       if (f.x - 120 > R.x + 120 || f.x + f.w + 140 < R.x - 120) continue;
       if (f.type === "vatten") {
@@ -886,6 +911,7 @@
             Sfx.play("good");
           }
         } else if (f.type !== "vatten") pts = Math.round(20 * m);
+        f.pts = pts; f.wasClean = !f.fault; f.wasPerfect = !f.fault && f.q > 0.55 && !f.refused;
         R.score += pts;
         updateHud(true);
       }
@@ -946,13 +972,22 @@
     if (R.state === "run" && R.jumpBuf > 0 && !R.air && R.cool <= 0 && R.v > 90) { R.jumpBuf = 0; takeoff(); }
 
     // förflyttning
-    if (R.state === "refuse") {
-      if (R.stateT > 0.9) {
-        const k = clamp((R.stateT - 0.9) / 0.9, 0, 1);
+    if (R.recoil) {
+      const q = R.recoil;
+      q.t += dt;
+      const k = clamp(q.t / q.dur, 0, 1);
+      R.x = lerp(q.from, q.to, 1 - (1 - k) * (1 - k));
+      R.prevX[0] = R.x + HFX; R.prevX[1] = R.x + HRX;
+      if (k >= 1) R.recoil = null;
+    } else if (R.state === "refuse") {
+      if (R.stateT > 1.0) {
+        if (!R.backStarted) { R.backStarted = true; R.backFrom = R.x; R.backT0 = R.stateT; R.backDur = clamp(Math.abs(R.backFrom - R.backTo) / 300, 0.8, 2.6); }
+        const k = clamp((R.stateT - R.backT0) / R.backDur, 0, 1);
         const e = k * k * (3 - 2 * k);
         R.x = lerp(R.backFrom, R.backTo, e);
         R.prevX[0] = R.x + HFX; R.prevX[1] = R.x + HRX;
-        if (k >= 1) { R.state = "run"; R.stateT = 0; R.v = 0; R.cool = 0; }
+        R.backing = k < 1 && Math.abs(R.backFrom - R.backTo) > 6;
+        if (k >= 1) { R.state = "run"; R.stateT = 0; R.v = 0; R.cool = 0; R.backing = false; }
       }
     } else if (R.air) {
       R.airT += dt;
@@ -982,6 +1017,7 @@
 
     // animation
     R.mode = R.air ? (R.v > 410 ? "gallop" : "canter") : modeOf(R.v);
+    if (R.recoil || R.backing) { R.mode = "walk"; R.phase -= dt * (R.recoil ? 3 : 1.6); }
     const g = Art.GAITS[R.mode === "stand" ? "stand" : R.mode];
     if (R.mode !== "stand" && !R.air) {
       const freq = clamp((R.v * g.stance) / (2 * g.A), 0.4, 3.4);
@@ -1266,7 +1302,7 @@
     const shk = R.shake > 0 ? Math.sin(R.t * 60) * 2 : 0;
     const toss = R.state === "refuse" ? Math.max(0, Math.sin(R.stateT * 9)) * (R.stateT < 1.4 ? 1 : 0) : 0;
     Art.drawHorse(ctx, {
-      x: R.x, y: gy - R.y + shk, scale: sc, t, mode: R.state === "refuse" ? "stand" : R.mode, phase: R.phase, air: R.air ? 1 : 0, u, lift: R.y,
+      x: R.x, y: gy - R.y + shk, scale: sc, t, mode: R.mode, phase: R.phase, air: R.air ? 1 : 0, u, lift: R.y,
       flow: clamp(R.v / 470, 0, 1) * 0.9 + 0.1, coat: horseCoat(), tack: tackData(), rider: riderData(), shine: S.horse.shine / 100, blink: Math.sin(t * 1.3) > 0.985, toss,
       ear: R.v > 250 ? 0.3 : 0,
     });
