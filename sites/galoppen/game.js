@@ -229,7 +229,8 @@
     const panel = $(".panel", screenEl);
     if (!panel) return { x: 0, y: 0, w: W, h: H };
     const r = panel.getBoundingClientRect();
-    const top = 56;
+    const tb = $(".topbar", screenEl);
+    const top = tb ? Math.max(56, tb.getBoundingClientRect().bottom + 4) : 56;
     if (r.top > H * 0.3) return { x: 0, y: top, w: W, h: Math.max(80, r.top - top) };
     return { x: 0, y: top, w: Math.max(120, r.left), h: H - top };
   }
