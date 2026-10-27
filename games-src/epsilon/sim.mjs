@@ -40,14 +40,14 @@ function run(def, playerLane, botMean, aiMean, aiSd) {
 for (const def of Tracks.DEFS) {
   const res = [];
   for (const lane of [0, 1]) {
-    const r = run(def, lane, 0.97, 0.92, 0.0);
+    const r = run(def, lane, 0.95, 0.975, 0.0);
     res.push(`fil${lane}: bot ${fmt(r.p.finishT)}s (${r.evs.pd} urspårn) varv ${r.p.lapTimes.map(fmt).join("/")} | AI ${r.a.finished ? fmt(r.a.finishT) : "-"}s (${r.evs.ad})`);
   }
   console.log(def.id.padEnd(8), res.join("  ||  "));
 }
 for (const def of Tracks.DEFS) {
   let der = 0, n = 40; const times = [];
-  for (let i = 0; i < n; i++) { const r = run(def, 0, 0.84, 0.925, 0.05); der += r.evs.ad; if (r.a.finished) times.push(r.a.finishT); }
+  for (let i = 0; i < n; i++) { const r = run(def, 0, 0.9, 0.975, 0.025); der += r.evs.ad; if (r.a.finished) times.push(r.a.finishT); }
   times.sort((a, b) => a - b);
   console.log(def.id.padEnd(8), `AI median ${fmt(times[times.length >> 1])}s min ${fmt(times[0])} max ${fmt(times[times.length - 1])}  urspårningar/lopp ${(der / n).toFixed(2)}`);
 }

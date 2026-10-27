@@ -192,7 +192,7 @@
   const particles = [];
   let bannerTimer = 0, toastTimer = 0;
 
-  function aiOpts(def) { return { mean: 0.935 + 0.005 * def.level, sd: 0.035 }; }
+  function aiOpts(def) { return { mean: 0.97 + 0.002 * def.level, sd: 0.025 }; }
 
   function startRace(id) {
     const def = Tracks.DEFS.find((d) => d.id === id), tr = Tracks.get(id);
@@ -350,19 +350,11 @@
     updateHud();
   }
 
-  const _pose = { x: 0, y: 0, a: 0, lift: 0, fly: false, alpha: 1 }, _pa = {}, _pb = {}, _pose2 = { x: 0, y: 0, a: 0, lift: 0, fly: false, alpha: 1 };
+  const _pose = { x: 0, y: 0, a: 0, lift: 0, fly: false, alpha: 1 }, _pose2 = { x: 0, y: 0, a: 0, lift: 0, fly: false, alpha: 1 };
   function poseOf(car, out) {
     out.alpha = 1; out.fly = false; out.lift = 0;
     if (car.mode === "fly") { const f = car.fly; out.x = f.x; out.y = f.y; out.a = f.a; out.lift = f.h; out.fly = true; return out; }
-    Tracks.sample(car.lane, car.s, _pa);
-    Tracks.sample(car.lane, car.s - Engine.P.WHEELBASE, _pb);
-    let rx = _pb.x, ry = _pb.y;
-    if (car.slip > 0.02) {
-      const side = _pa.k > 0 ? -1 : 1, off = car.slip * 6.5 + (car.slip > 0.4 ? (Math.random() - 0.5) * 1.2 : 0);
-      rx += side * -Math.sin(_pb.th) * off; ry += side * Math.cos(_pb.th) * off;
-    }
-    out.x = (_pa.x + rx) / 2; out.y = (_pa.y + ry) / 2; out.a = Math.atan2(_pa.y - ry, _pa.x - rx);
-    out.fx = _pa.x; out.fy = _pa.y; out.rx = rx; out.ry = ry;
+    Engine.pose(car, out, true);
     if (car.mode === "wait") {
       const since = race.t - car.placedAt;
       out.lift = Math.max(0, 1 - since / 0.28) * 0.5;
@@ -395,7 +387,7 @@
   function emitEffects(dt) {
     for (const car of [race.player, race.ai]) {
       if (car.mode !== "run") continue;
-      const hot = car.turboOn || car.slip > 0.25;
+      const hot = car.turboOn || car.drift > 0.5;
       if (!hot || particles.length > 130) continue;
       const p = poseOf(car, _pose2);
       if (Math.random() < Math.min(1, dt * 90)) {
@@ -415,7 +407,7 @@
     const ap = poseOf(a, _pose2), ax = toScreenX(ap.x, ap.y);
     Sfx.motorUpdate("a", a.mode === "run" ? a.v : 0, a.v > 5, (ax / W) * 2 - 1, a.mode === "run");
     Sfx.turboUpdate(p.turboOn && p.mode === "run");
-    Sfx.squealUpdate(p.mode === "run" ? Math.min(1, p.slip * 1.5) : 0);
+    Sfx.squealUpdate(p.mode === "run" ? Math.max(0, (p.drift - 0.3) / 0.7) : 0);
     if (p.turboOn && !R.turboWas) Sfx.play("turbo");
     R.turboWas = p.turboOn;
   }
@@ -589,8 +581,10 @@
   window.addEventListener("resize", () => { resize(); });
   window.addEventListener("orientationchange", () => setTimeout(resize, 150));
   ["gesturestart", "gesturechange", "gestureend"].forEach((n) => document.addEventListener(n, (e) => e.preventDefault()));
-  let lastTouch = 0;
-  document.addEventListener("touchend", (e) => { const now = Date.now(); if (now - lastTouch < 350 && !(e.target && e.target.tagName === "INPUT")) e.preventDefault(); lastTouch = now; }, { passive: false });
+  // dubbeltryck får aldrig zooma (iOS ignorerar user-scalable=no): spärra på reglagen under loppet, och touch-action: manipulation i css överallt
+  ["touchstart", "touchend"].forEach((n) => $("#touch").addEventListener(n, (e) => e.preventDefault(), { passive: false }));
+  document.addEventListener("dblclick", (e) => e.preventDefault());
+  document.addEventListener("touchmove", (e) => { if (e.touches.length > 1) e.preventDefault(); }, { passive: false });
   document.addEventListener("contextmenu", (e) => e.preventDefault());
 
   let deferredInstall = null;

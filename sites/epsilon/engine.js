@@ -4,14 +4,17 @@
    sidokraften v^2 * krökning får inte överstiga greppet G, annars glider bakvagnen ut och bilen spårar ur. */
 const Engine = (() => {
   const P = {
-    G: 310,           // max sidoacceleration (enheter/s^2) innan bilen börjar glida
+    G: 440,           // max sidoacceleration (enheter/s^2) innan bilen börjar glida
     VTOP: 205,        // topphastighet med bara gas
     VTURBO: 278,      // topphastighet med turbo
     K_ACC: 2.3,       // motorns "stighastighet" (1/s) utan turbo
     K_TURBO: 3.6,     // med turbo
     BRK0: 78, BRK1: 1.25, // motorbroms när man släpper gasen: dv/dt = -(BRK0 + BRK1 * v)
-    SLIP_RATE: 20,    // hur snabbt glidningen byggs upp per överbelastning
-    SLIP_RECOVER: 2.6,
+    DRIFT_FROM: 0.75, // under greppgränsen: från så här stor andel av G börjar bakvagnen släppa lite (breddställ, ofarligt)
+    DRIFT_MAX: 0.45,  // största ofarliga breddställ (andel av full glidning)
+    SLIP_BASE: 0.3,   // över greppgränsen: urspårningsmätaren fylls med BASE + RATE * (överbelastning) per sekund
+    SLIP_RATE: 7,
+    SLIP_RECOVER: 2.2,
     TURBO_DRAIN: 0.42, // per sekund (full mätare räcker ~2,4 s)
     TURBO_REGEN: 0.11, // per sekund (full laddning på ~9 s)
     TURBO_MIN: 0.06,   // måste ha minst så här mycket för att starta turbo
@@ -25,7 +28,7 @@ const Engine = (() => {
 
   function newCar(lane, startS) {
     return {
-      lane, s: startS, v: 0, slip: 0, turbo: 1, mode: "run", // run | fly | wait | done
+      lane, s: startS, v: 0, slip: 0, drift: 0, turbo: 1, mode: "run", // run | fly | wait | done
       gas: false, turboOn: false,
       laps: 0, lapStart: 0, lapTimes: [], derails: 0, finished: false, finishT: 0,
       fly: null, tDerail: 0, a: 0, sound: { sq: 0 },
@@ -40,7 +43,7 @@ const Engine = (() => {
     if (car.mode === "fly") return stepFly(car, dt, t, ev);
     if (car.mode === "wait") {
       car.wait -= dt;
-      if (car.wait <= 0) { car.mode = "run"; car.v = 0; car.slip = 0; ev && ev("placed", car); }
+      if (car.wait <= 0) { car.mode = "run"; car.v = 0; car.slip = 0; car.drift = 0; ev && ev("placed", car); }
       return;
     }
     car.gas = !!input.gas; car.turboOn = false;
@@ -63,13 +66,19 @@ const Engine = (() => {
     // greppet: sidoacceleration mot grepp
     const aLat = car.v * car.v * Math.abs(out.k);
     car.a = aLat;
-    const over = aLat / P.G - 1;
-    if (!finishing && over > 0) {
-      car.slip += P.SLIP_RATE * over * dt;
+    const r = aLat / P.G;
+    car.r = r;
+    let target = 0;
+    if (!finishing && r > 1) {
+      // över greppgränsen: urspårningsmätaren fylls, snabbare ju mer man överskrider
+      car.slip += (P.SLIP_BASE + P.SLIP_RATE * (r - 1)) * dt;
       if (car.slip >= 1) { derail(car, t, ev, out); return; }
     } else {
       car.slip = Math.max(0, car.slip - P.SLIP_RECOVER * dt);
     }
+    if (!finishing && r > P.DRIFT_FROM) target = Math.min(P.DRIFT_MAX, P.DRIFT_MAX * (r - P.DRIFT_FROM) / (1 - P.DRIFT_FROM));
+    target = Math.min(1, target + (1 - P.DRIFT_MAX) * car.slip);
+    car.drift += (target - car.drift) * Math.min(1, dt * 14);
     car.s += car.v * dt;
   }
 
@@ -77,13 +86,33 @@ const Engine = (() => {
   const _tmp = { x: 0, y: 0, th: 0, k: 0, i: 0 };
   const _tmp2 = { x: 0, y: 0, th: 0, k: 0, i: 0 };
 
+  /* Bilens läge: mitten mellan framaxel (styrstiftet i spåret) och bakaxel. Vid glidning (drift) släpper bakvagnen
+     utåt i kurvan, så bilen vinklas åt samma håll som kurvan svänger. Skriver x, y, a (vinkel) och fx, fy, rx, ry. */
+  const _pa = { x: 0, y: 0, th: 0, k: 0, i: 0 }, _pb = { x: 0, y: 0, th: 0, k: 0, i: 0 };
+  function pose(car, out, jitter) {
+    Tracks.sample(car.lane, car.s, _pa);
+    Tracks.sample(car.lane, car.s - P.WHEELBASE, _pb);
+    let rx = _pb.x, ry = _pb.y;
+    if (car.drift > 0.01) {
+      const side = _pa.k > 0 ? -1 : 1, off = car.drift * 6.5 + (jitter && car.drift > 0.55 ? (Math.random() - 0.5) * 1.2 : 0);
+      rx += side * -Math.sin(_pb.th) * off; ry += side * Math.cos(_pb.th) * off;
+    }
+    out.x = (_pa.x + rx) / 2; out.y = (_pa.y + ry) / 2; out.a = Math.atan2(_pa.y - ry, _pa.x - rx);
+    out.fx = _pa.x; out.fy = _pa.y; out.rx = rx; out.ry = ry;
+    return out;
+  }
+  const _pp = {};
+
   function derail(car, t, ev, o) {
+    const sg = o.k >= 0 ? 1 : -1;
+    pose(car, _pp, false);
+    // bilen fortsätter rakt fram längs tangenten (alltså utåt ur kurvan) och snurrar åt samma håll som kurvan svängde
+    const spin = sg * Math.max(1.5, Math.min(4.5, car.v * Math.abs(o.k) * 1.1));
     car.mode = "fly";
     car.derails++;
     car.tDerail = t;
-    car.fly = { x: o.x, y: o.y, a: o.th, spin: (Math.random() < 0.5 ? -1 : 1) * (5 + Math.random() * 5), t: 0,
-                // lämnar banan längs tangenten, lite utåt
-                vx: Math.cos(o.th + (o.k > 0 ? 0.28 : -0.28)) * car.v, vy: Math.sin(o.th + (o.k > 0 ? 0.28 : -0.28)) * car.v, h: 0 };
+    car.fly = { x: _pp.x, y: _pp.y, a: _pp.a, spin, t: 0, h: 0,
+                vx: Math.cos(o.th - sg * 0.08) * car.v, vy: Math.sin(o.th - sg * 0.08) * car.v };
     car.fly.v0 = car.v;
     car.flyT = 0;
     car.v = 0;
@@ -104,7 +133,7 @@ const Engine = (() => {
     // "lyft" - hopp över kanten: 0 -> 1 -> 0 första 0,55 s
     f.h = car.flyT < 0.55 ? Math.sin(car.flyT / 0.55 * Math.PI) : 0;
     if (car.flyT >= P.PLACE_AT) {
-      car.mode = "wait"; car.wait = P.RESPAWN - P.PLACE_AT; car.placedAt = t; car.v = 0; car.slip = 0; car.fly = null;
+      car.mode = "wait"; car.wait = P.RESPAWN - P.PLACE_AT; car.placedAt = t; car.v = 0; car.slip = 0; car.drift = 0; car.fly = null;
       ev && ev("placing", car);
     }
   }
@@ -241,7 +270,7 @@ const Engine = (() => {
     }
   }
 
-  const api = { P, START_BEHIND, newCar, step, makeAI, reprofile, aiInput, corners, makeProfile, createRace, stepRace };
+  const api = { P, START_BEHIND, pose, newCar, step, makeAI, reprofile, aiInput, corners, makeProfile, createRace, stepRace };
   if (typeof module !== "undefined" && module.exports) module.exports = api;
   return api;
 })();
