@@ -15,19 +15,19 @@ const Tracks = (() => {
   const DEFS = [
     {
       id: "oval", name: "Ovalen", level: 1, blurb: "Två långa raksträckor och två breda kurvor. Perfekt uppvärmning.",
-      seq: [["s", 330], ["a", 180, 92]], rep: 2,
+      seq: [["s", 300], ["a", 180, 106]], rep: 2,
     },
     {
       id: "rund", name: "Rundan", level: 2, blurb: "Fyra raka hörn. Bromsa i tid inför varje kurva.",
-      seq: [["s", 310], ["a", 90, 72], ["s", 190], ["a", 90, 72]], rep: 2,
+      seq: [["s", 300], ["a", 90, 80], ["s", 180], ["a", 90, 80]], rep: 2,
     },
     {
       id: "trekant", name: "Triangeln", level: 3, blurb: "Tre skarpa hörn och korta raka bitar. Turbon räcker inte långt.",
-      seq: [["s", 250], ["a", 120, 78]], rep: 3,
+      seq: [["s", 240], ["a", 120, 86]], rep: 3,
     },
     {
       id: "chikan", name: "Chikanen", level: 4, blurb: "Slingor på raksträckorna. Rytm är allt.",
-      seq: [["s", 230], ["a", 45, 110], ["a", -45, 110], ["s", 90], ["a", 90, 70], ["s", 130], ["a", 90, 70]], rep: 2,
+      seq: [["s", 230], ["a", 45, 110], ["a", -45, 110], ["s", 90], ["a", 90, 76], ["s", 130], ["a", 90, 76]], rep: 2,
     },
     {
       id: "harnal", name: "Hårnålen", level: 5, blurb: "Två hårnålskurvor och en snabb knyck. Svårast, och roligast.",
