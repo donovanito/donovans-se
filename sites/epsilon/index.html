@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="sv">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<title>Epsilon Raceway</title>
+<meta name="description" content="Slotbilsbana ovanifrån: välj bana och bil, håll gasen, släpp före kurvorna och kör hem tre varv.">
+<meta name="robots" content="noindex">
+<meta name="theme-color" content="#16181c">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Epsilon">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta property="og:title" content="Epsilon Raceway">
+<meta property="og:description" content="Slotbilsbana ovanifrån. Gas, turbo och tre varv.">
+<meta property="og:image" content="https://epsilon.donovans.se/og.png">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<canvas id="c" aria-label="Epsilon Raceway"></canvas>
+<div id="safe"></div>
+
+<!-- ======== HUD under loppet ======== -->
+<div id="hud" hidden>
+  <div class="hud-l">
+    <div class="chip"><small>VARV</small><b id="hLap">1/3</b></div>
+    <div class="chip wide"><small>TID</small><b id="hTime">0.00</b></div>
+    <div class="chip"><small>BÄSTA VARV</small><b id="hBest">-</b></div>
+    <div class="chip pos" id="hPosChip"><small>PLACERING</small><b id="hPos">1:a</b></div>
+    <div class="chip rec" id="hRecChip"><small>REKORD</small><b id="hRec">-</b></div>
+  </div>
+  <div class="hud-r">
+    <button class="round" id="hMute" aria-label="Ljud av/på"></button>
+    <button class="round" id="hPause" aria-label="Paus"><svg viewBox="0 0 24 24"><path d="M8 5v14M16 5v14"/></svg></button>
+  </div>
+</div>
+<div id="lights" hidden><i></i><i></i><i></i></div>
+<div id="banner" hidden></div>
+<div id="hint" hidden>Håll <b>GAS</b> och släpp före kurvorna. <b>TURBO</b> på raksträckor.</div>
+
+<!-- ======== Touchkontroller (vänster halva = gas, höger halva = turbo) ======== -->
+<div id="touch" hidden>
+  <div class="zone zl" data-act="gas"><div class="pad gas"><svg viewBox="0 0 24 24"><path d="M4 18 L12 6 L20 18"/></svg><span>GAS</span></div></div>
+  <div class="zone zr" data-act="turbo"><div class="pad turbo" id="turboPad"><svg viewBox="0 0 24 24"><path d="M13 2 L5 14 H11 L10 22 L19 9 H13 Z"/></svg><span>TURBO</span><div class="tm"><i id="tFill"></i></div></div></div>
+</div>
+
+<!-- ======== Huvudmeny ======== -->
+<section id="menu" class="screen">
+  <header class="mtop">
+    <h1><span class="e">EPSILON</span> <span class="r">RACEWAY</span></h1>
+    <button class="round" id="mMute" aria-label="Ljud av/på"></button>
+  </header>
+  <div class="mbody">
+    <div class="panel trackpanel">
+      <div class="pick">
+        <button class="nav" id="prevTrack" aria-label="Föregående bana">&#8249;</button>
+        <div class="thumbwrap">
+          <canvas id="thumb"></canvas>
+        </div>
+        <button class="nav" id="nextTrack" aria-label="Nästa bana">&#8250;</button>
+      </div>
+      <div class="tinfo">
+        <div class="tname"><b id="tName">Ovalen</b><span class="lvl" id="tLvl"></span></div>
+        <p id="tBlurb"></p>
+        <div class="dots" id="dots"></div>
+      </div>
+    </div>
+    <div class="panel sidepanel">
+      <h3>Topp 3 <span id="lbTrack"></span></h3>
+      <ol class="lb" id="lb"></ol>
+      <h3>Välj bil</h3>
+      <div class="cars" id="cars"></div>
+      <label class="namerow"><span>Förare</span><input id="name" type="text" maxlength="14" autocomplete="off" autocapitalize="words" spellcheck="false" placeholder="Ditt namn"></label>
+      <button class="go" id="go">KÖR 3 VARV</button>
+    </div>
+  </div>
+  <div class="mfoot">
+    <button class="pillbtn" id="installBtn" hidden>Installera appen</button>
+    <p class="hint2" id="iosHint" hidden>Installera: tryck på <b>Dela</b> och välj <b>Lägg till på hemskärmen</b>. Då funkar spelet även utan nät.</p>
+    <p class="hint2" id="offlineHint" hidden></p>
+  </div>
+</section>
+
+<!-- ======== Resultat och paus ======== -->
+<div id="result" class="overlay" hidden></div>
+<div id="pause" class="overlay" hidden>
+  <div class="card">
+    <h2>Paus</h2>
+    <button class="big go" id="pResume">Fortsätt</button>
+    <button class="big alt" id="pRetry">Starta om loppet</button>
+    <button class="big alt" id="pQuit">Till menyn</button>
+  </div>
+</div>
+<div id="toast" hidden></div>
+
+<script src="track.js"></script>
+<script src="engine.js"></script>
+<script src="art.js"></script>
+<script src="audio.js"></script>
+<script src="game.js"></script>
+</body>
+</html>
