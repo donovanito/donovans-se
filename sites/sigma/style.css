@@ -343,3 +343,12 @@ h1, h2, h3, p { margin: 0; }
   .installrow { flex-basis: 100%; }
 }
 @media (prefers-reduced-motion: reduce) { * { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; } }
+/* Låg liggande telefon: mer plats åt beslutet */
+@media (orientation: landscape) and (max-height: 520px) {
+  .factor p { display: none; }
+  .factor { padding: 8px 10px; margin-bottom: 8px; }
+  .gfoot { padding-top: 4px; padding-bottom: max(6px, env(safe-area-inset-bottom)); }
+  .gfoot .btn { padding: 10px 14px; }
+  .lt b { font-size: 15px; }
+  .sal small { display: none; }
+}
