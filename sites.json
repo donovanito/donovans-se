@@ -34,5 +34,9 @@
   "epsilon": {
     "host": "epsilon.donovans.se",
     "dir": "webroots/aa2a281c/"
+  },
+  "sigma": {
+    "host": "sigma.donovans.se",
+    "dir": "webroots/10920ad6/"
   }
 }

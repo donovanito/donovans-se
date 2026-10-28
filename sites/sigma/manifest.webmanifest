@@ -1,0 +1,17 @@
+{
+  "name": "Sigma - från springpojke till VD",
+  "short_name": "Sigma",
+  "description": "Strategispel: ta dig från springpojke till VD genom tio nivåer, fem steg per nivå och tre beslut per steg.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#071228",
+  "theme_color": "#071228",
+  "lang": "sv",
+  "icons": [
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}
