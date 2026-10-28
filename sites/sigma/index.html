@@ -1,0 +1,150 @@
+<!doctype html>
+<html lang="sv">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<title>Sigma</title>
+<meta name="description" content="Från springpojke till VD: ta strategiska beslut, hantera strejk, inflation och klimathot, och klättra i bankens karriärtorn.">
+<meta name="robots" content="noindex">
+<meta name="theme-color" content="#071228">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Sigma">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta property="og:title" content="Sigma - från springpojke till VD">
+<meta property="og:description" content="Strategispel: tio nivåer, fem steg per nivå, tre beslut per steg. Hur långt tar du banken?">
+<meta property="og:image" content="https://sigma.donovans.se/og.png">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<!-- ======== Huvudmeny ======== -->
+<section id="menu" class="screen">
+  <div class="skywrap" id="skyline"></div>
+  <div class="mtop"><button class="ibtn" id="mMute" aria-label="Ljud av/på"></button></div>
+  <div class="mwrap">
+    <div class="brand">
+      <div class="logo" id="logo"></div>
+      <h1>SIGMA</h1>
+      <p class="tag">Från springpojke till VD</p>
+    </div>
+    <div id="resume" class="resume" hidden></div>
+    <nav class="mbtns">
+      <button class="mbtn gold" id="bContinue" hidden><span class="mi">▶</span><span class="mt"><b>Fortsätt karriären</b><small id="bContinueSub"></small></span></button>
+      <button class="mbtn" id="bNew"><span class="mi">✦</span><span class="mt"><b>Ny karriär</b><small>Börja som springpojke</small></span></button>
+      <button class="mbtn" id="bTower"><span class="mi">🏢</span><span class="mt"><b>Karriärtornet</b><small>Tio nivåer upp till VD</small></span></button>
+      <button class="mbtn" id="bRecords"><span class="mi">🏆</span><span class="mt"><b>Rekord</b><small>Bästa karriärerna</small></span></button>
+      <button class="mbtn" id="bHelp"><span class="mi">?</span><span class="mt"><b>Så spelar du</b><small>Parametrar, faktorer och utvärdering</small></span></button>
+    </nav>
+    <div class="installrow">
+      <button class="pill" id="installBtn" hidden>📲 Lägg till på hemskärmen</button>
+      <p class="hint" id="iosHint" hidden>Installera: tryck på <b>Dela</b> <span class="share">⬆︎</span> och välj <b>Lägg till på hemskärmen</b>. Sedan fungerar spelet även utan nät.</p>
+      <p class="hint" id="offlineHint" hidden></p>
+    </div>
+  </div>
+</section>
+
+<!-- ======== Spelet ======== -->
+<section id="game" class="screen" hidden>
+  <header class="gtop" id="gTop">
+    <button class="ibtn" id="gMenu" aria-label="Meny">☰</button>
+    <button class="lvl" id="gLevel" aria-label="Visa karriärtornet">
+      <span class="lav" id="gAvatar"></span>
+      <span class="lt"><small id="gLvlNo">NIVÅ 1 AV 10</small><b id="gLvlName">Springpojke</b></span>
+      <span class="sal"><small>MÅNADSLÖN</small><b id="gSal">0 kr</b></span>
+    </button>
+    <button class="ibtn" id="gMute" aria-label="Ljud av/på"></button>
+  </header>
+  <div class="gstat" id="gStat">
+    <div class="sigma" id="gSigma"></div>
+    <div class="gauges" id="gGauges"></div>
+  </div>
+  <aside class="side" id="gSide"></aside>
+  <main class="gscroll" id="gMain"></main>
+  <footer class="gfoot" id="gFoot"></footer>
+</section>
+
+<!-- ======== Överlägg ======== -->
+<div class="overlay" id="ovTower" hidden>
+  <div class="sheet tall">
+    <h2 id="ovTowerTitle">Karriärtornet</h2>
+    <p class="sub" id="ovTowerSub"></p>
+    <div id="ovTowerBody" class="towerbody"></div>
+    <button class="btn" id="ovTowerClose">Stäng</button>
+  </div>
+</div>
+
+<div class="overlay" id="ovHelp" hidden>
+  <div class="sheet wide">
+    <h2>Så spelar du</h2>
+    <div class="help">
+      <p><b>Målet:</b> ta dig från springpojke (nivå 1) till VD (nivå 10) i tornet. Varje nivå är ett karriärår med <b>5 steg</b>. I varje steg möter du en utmaning och fattar ett av <b>tre strategiska beslut</b>.</p>
+      <h3>Fyra parametrar</h3>
+      <ul class="plist">
+        <li><span>💰</span><div><b>Ekonomi</b> Bankens resultat och ditt bidrag till det.</div></li>
+        <li><span>🤝</span><div><b>Företagskultur</b> Stämning, förtroende och arbetsmiljö.</div></li>
+        <li><span>📈</span><div><b>Löneutveckling</b> Din lön och löneutrymmet i organisationen.</div></li>
+        <li><span>🪜</span><div><b>Tjänsteutveckling</b> Din kompetens, synlighet och mandat.</div></li>
+      </ul>
+      <p>Alla börjar på 50. <b>Vardagen tär:</b> utan underhåll tappar alla fyra lite fart i varje steg, och friktionen växer med nivån. Går någon under <b>10</b> blir det <b>kris</b> direkt och du flyttas ned.</p>
+      <h3>Σ-index och utvärdering</h3>
+      <p><b>Σ-index</b> är snittet av de fyra parametrarna. Efter steg 5 utvärderas du, ungefär som i ett balanced scorecard:</p>
+      <ul>
+        <li><b>Befordran</b> om Σ når kravet och ingen parameter är under 30.</li>
+        <li><b>Snabbspår</b> (två nivåer) om Σ är 12 över kravet och ingen parameter är under 40.</li>
+        <li><b>Förlängt uppdrag</b> om du är strax under. Du blir kvar och kör ett nytt år.</li>
+        <li><b>Nedflyttning</b> om resultatet är klart under kravet.</li>
+      </ul>
+      <p>När du blivit VD gäller samma regler: styrelsen utvärderar dig efter fem steg.</p>
+      <h3>Faktorer, beslutstyper och risk</h3>
+      <p>Varje steg har en <b>extern</b> (inflation, strejk, klimathot, räntechock ...) eller <b>intern</b> (omorganisation, systemhaveri, release train ...) faktor. Den <b>gynnar</b> eller <b>straffar</b> vissa beslutstyper, till exempel 🧑‍🤝‍🧑 Människor eller ✂️ Kostnad. Läs raden och välj därefter.</p>
+      <p>Pilarna under varje beslut visar vad det främst påverkar. Exakta siffror ser du efteråt. Varje beslut har också en <b>risk</b>: vid bakslag uteblir nyttan och kostnaden växer.</p>
+      <p>Spelet sparas automatiskt och fungerar utan nät när du lagt till det på hemskärmen.</p>
+    </div>
+    <button class="btn" id="ovHelpClose">Förstått</button>
+  </div>
+</div>
+
+<div class="overlay" id="ovRecords" hidden>
+  <div class="sheet wide">
+    <h2>Rekord</h2>
+    <div id="recBody"></div>
+    <button class="btn" id="ovRecClose">Stäng</button>
+  </div>
+</div>
+
+<div class="overlay" id="ovNew" hidden>
+  <div class="sheet">
+    <h2>Ny karriär</h2>
+    <p class="sub">Vem börjar i postrummet?</p>
+    <label class="fld"><span>Ditt namn</span><input id="nName" maxlength="16" autocomplete="off" autocapitalize="words" placeholder="Alex"></label>
+    <div class="fld"><span>Utseende</span><div class="looks" id="nLooks"></div></div>
+    <div class="row"><button class="btn alt" id="nCancel">Avbryt</button><button class="btn" id="nStart">Starta karriären</button></div>
+  </div>
+</div>
+
+<div class="overlay" id="ovMenu" hidden>
+  <div class="sheet">
+    <h2>Paus</h2>
+    <button class="btn" id="pResume">Fortsätt</button>
+    <button class="btn alt" id="pTower">Karriärtornet</button>
+    <button class="btn alt" id="pHelp">Så spelar du</button>
+    <button class="btn alt" id="pQuit">Till menyn</button>
+    <p class="hint">Din karriär sparas automatiskt.</p>
+  </div>
+</div>
+
+<div class="overlay win" id="ovWin" hidden></div>
+<canvas id="confetti" aria-hidden="true"></canvas>
+<div id="toast" hidden></div>
+
+<script src="data.js"></script>
+<script src="engine.js"></script>
+<script src="art.js"></script>
+<script src="audio.js"></script>
+<script src="game.js"></script>
+</body>
+</html>
