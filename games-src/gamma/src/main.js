@@ -4,6 +4,7 @@ import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
 import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
 import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
+import { makeFinishPass, makeAOPass } from './post.js';
 import { clamp, rand, pick, damp, store, TAU } from './util.js';
 import { World, ARENA_R } from './physics.js';
 import { buildWorld } from './world.js';
@@ -27,9 +28,9 @@ const standalone = window.navigator.standalone === true || matchMedia('(display-
 const lowCpu = (navigator.hardwareConcurrency || 8) <= 4;
 
 const TIERS = [
-  { name: 'Låg', bloom: false, shadows: false, shadowSize: 0, samples: 0, prCap: touchDev ? 1.0 : 1.25 },
-  { name: 'Medel', bloom: true, shadows: true, shadowSize: 1024, samples: touchDev ? 0 : 2, prCap: touchDev ? 1.5 : 1.75 },
-  { name: 'Hög', bloom: true, shadows: true, shadowSize: 2048, samples: 4, prCap: 2 },
+  { name: 'Låg', bloom: false, ao: false, finish: false, shadows: false, shadowSize: 0, samples: 0, prCap: touchDev ? 1.0 : 1.25 },
+  { name: 'Medel', bloom: true, ao: false, finish: true, shadows: true, shadowSize: 1024, samples: touchDev ? 0 : 2, prCap: touchDev ? 1.5 : 1.75 },
+  { name: 'Hög', bloom: true, ao: !touchDev, finish: true, shadows: true, shadowSize: 2048, samples: 4, prCap: 2 },
 ];
 const settings = {
   quality: store('quality') ?? 'auto',
@@ -58,7 +59,7 @@ const phys = new World();
 const world = buildWorld(scene, renderer, phys, Q);
 const fx = new FX(scene, Q);
 const weapons = new Weapons(scene.environment);
-let composer = null, bloomPass = null;
+let composer = null, bloomPass = null, weaponPass = null, finishPass = null, aoPass = null;
 
 function buildComposer() {
   if (composer) { composer.dispose(); composer = null; }
@@ -67,12 +68,17 @@ function buildComposer() {
   const rt = new THREE.WebGLRenderTarget(4, 4, { type: THREE.HalfFloatType, samples: cfg.samples });
   composer = new EffectComposer(renderer, rt);
   composer.addPass(new RenderPass(scene, camera));
+  aoPass = null;
+  if (cfg.ao) { aoPass = makeAOPass(scene, camera, innerWidth, innerHeight); composer.addPass(aoPass); }
   const wp = new RenderPass(weapons.scene, weapons.camera);
   wp.clear = false; wp.clearDepth = true;
   composer.addPass(wp);
+  weaponPass = wp;
   bloomPass = new UnrealBloomPass(new THREE.Vector2(256, 256), touchDev ? 0.28 : 0.34, 0.4, 1.0);
   composer.addPass(bloomPass);
   composer.addPass(new OutputPass());
+  finishPass = null;
+  if (cfg.finish) { finishPass = makeFinishPass(); finishPass.uniforms.grain.value = touchDev ? 0.025 : 0.035; composer.addPass(finishPass); }
   sizeComposer();
 }
 function sizeComposer() {
@@ -874,7 +880,12 @@ function frame(now) {
   // rendera
   const showWeapon = mode === 'playing' || mode === 'dead' || mode === 'paused';
   if (composer) {
-    composer.passes[1].enabled = showWeapon;
+    weaponPass.enabled = showWeapon;
+    if (aoPass) aoPass.syncCamera();
+    if (finishPass) {
+      const u = finishPass.uniforms;
+      u.time.value = now * 0.001; u.hurt.value = flashDmg; u.aspect.value = innerWidth / innerHeight;
+    }
     composer.render(dt);
   } else {
     renderer.clear();
@@ -914,6 +925,6 @@ function boot() {
     e.spawnT = 0; e.pos.set(x, type === 'drone' ? 1.8 : 0, z); e.yaw = yaw; e.group.scale.setScalar(1); e.group.position.copy(e.pos); e.group.rotation.y = yaw; e.cd = 99;
     enemies.push(e); return e;
   };
-  window.__gamma = { placeEnemy, input, world, phys, scene, camera, player, enemies, game, waveState, ctx, weapons, fx, renderer, get mode() { return mode; }, get frames() { return frames; }, sim: (secs, auto) => { for (let i = 0; i < secs * 30; i++) { if (auto) auto(); step(1 / 30); } }, startGame, setMode: (m) => { mode = m; }, pickups, spawnPickup, hurtPlayer, tier: () => tier, applyTier, setTier: (t) => { tier = t; applyTier(); } };
+  window.__gamma = { get composer() { return composer; }, get aoPass() { return aoPass; }, placeEnemy, input, world, phys, scene, camera, player, enemies, game, waveState, ctx, weapons, fx, renderer, get mode() { return mode; }, get frames() { return frames; }, sim: (secs, auto) => { for (let i = 0; i < secs * 30; i++) { if (auto) auto(); step(1 / 30); } }, startGame, setMode: (m) => { mode = m; }, pickups, spawnPickup, hurtPlayer, tier: () => tier, applyTier, setTier: (t) => { tier = t; applyTier(); } };
 }
 setTimeout(boot, 30);
